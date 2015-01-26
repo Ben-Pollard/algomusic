@@ -10,3 +10,10 @@ SynthDef( \sin, {|amp=0.01,freq=333,trig=1|var env, sig;
 }).add;
 
 h=Synth(\sin,[amp,0.4]);
+
+x=OSCFunc({|msg,time,addr,port|var pyFreq;
+	pyFreq=msg[1].asFloat;
+	("freq is " + pyFreq).postln;
+	h.set(\freq,pyFreq);
+},'/print');
+)
