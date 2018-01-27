@@ -1,0 +1,1 @@
+Attempt to model music domain in a way that makes underlying theory apparent when composing
