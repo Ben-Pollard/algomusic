@@ -1,10 +1,10 @@
 package primitives
 
-import primitives.Primitives.{MidiNote, Scale, majorScalePattern}
+import primitives.Primitives._
 
 object Mappings {
 
-  val midiNoteNames: Map[String, MidiNote] = Map(
+  val midiNoteNames: Map[String, Pitch] = Map(
     "C" -> 60,
     "C#" -> 61,
     "D" -> 62,
@@ -19,7 +19,9 @@ object Mappings {
     "B" -> 71
   )
 
-  val CMaj = new Scale(majorScalePattern, Mappings.midiNoteNames.get("C").get)
+  val majorScalePattern = Seq(tone,tone,semiTone,tone,tone,tone,semiTone)
+
+  val CMaj = Scale(majorScalePattern, Mappings.midiNoteNames.get("C").get)
 
 
 }
