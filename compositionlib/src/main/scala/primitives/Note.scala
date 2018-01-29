@@ -2,6 +2,14 @@ package primitives
 
 object Primitives {
 
+  //
+  type Velocity = Byte
+  object Velocities {
+    def apply(velocities: Seq[Int]):Seq[Velocity] = {
+      velocities.map(_.asInstanceOf[Velocity])
+    }
+  }
+
   //TONE AND PITCH
   type Pitch = Int
   val midiRange: Seq[Pitch] = 0 to 127
@@ -27,9 +35,21 @@ object Primitives {
   type Rhythm = Seq[Either[Duration, RestDuration]]
 
   object Rhythm {
-    def apply(divideBarInto:Int, beatsAt: Seq[Int], durations: Seq[Duration]):Rhythm = {
+    def apply(divideBarInto:Int, beatsAt: Seq[Int], noteDurations: Seq[Duration]):Rhythm = {
       assert(beatsAt.max <= divideBarInto)
-      0 until divideBarInto map(b => if(beatsAt.contains(b)) Left(durations(b)) else Right((1/divideBarInto).asInstanceOf[RestDuration]))
+      assert(beatsAt.length == noteDurations.length)
+
+      val nonOverlapNoteDurations: Seq[Duration] = (0 until beatsAt.length -1 map(i => {
+        Vector((beatsAt(i+1) - beatsAt(i)).asInstanceOf[Duration], noteDurations(i)).min
+      })) :+ Vector((divideBarInto + 1 - beatsAt.last).asInstanceOf[Duration], noteDurations.last).min
+
+      val restDurations: Iterator[RestDuration] = ((beatsAt.head - 1.0) +: ((0 until beatsAt.length -1) map(i => {
+        beatsAt(i+1) - beatsAt(i) - nonOverlapNoteDurations(i)
+      })) :+ divideBarInto + 1 - beatsAt.last - nonOverlapNoteDurations.last).map(_.asInstanceOf[RestDuration]).toIterator
+
+      val nonOverlapNoteDurationsIt = nonOverlapNoteDurations.toIterator
+
+      1 to (beatsAt.length*2 + 1) map(b => if(b % 2 == 0) Left(nonOverlapNoteDurationsIt.next()) else Right(restDurations.next()))
     }
   }
 
@@ -79,15 +99,15 @@ object Primitives {
 
 
   //NOTE
-  case class Note(pitch: Option[Pitch], duration:Duration)
+  case class Note(pitch: Option[Pitch], duration:Duration, velocity: Velocity)
 
   object Rest {
-    def apply(duration: Duration) = new Note(None, duration)
+    def apply(duration: Duration) = new Note(None, duration, 0)
   }
 
   object Note {
-    def apply(scale: Scale, degree: Int, duration: Duration = q) = {
-      new Note(Some(scale.getDegreePitch(degree)), duration)
+    def apply(scale:Scale, degree:Int, duration:Duration = q, velocity:Velocity = 64) = {
+      new Note(Some(scale.getDegreePitch(degree)), duration, velocity)
     }
   }
 
@@ -105,9 +125,20 @@ object Primitives {
 
   object Bar {
     //assumes number of non-rests are equal to number of pitches
-    def apply(notes: Seq[Pitch], rhythm: Rhythm): Bar = {
+    def apply(notes: Seq[Pitch], rhythm: Rhythm, velocity: Velocity = 64): Bar = {
+      val velocities = Seq.fill(notes.length)(velocity)
+      apply(notes, rhythm, velocities)
+    }
+
+    def apply(notes: Seq[Pitch], rhythm: Rhythm, velocities: Seq[Velocity]): Bar = {
+      assert(notes.length == velocities.length)
+      assert(rhythm.filter(_.isLeft).length == notes.length)
       val pitchIterator = notes.toIterator
-      new Bar(rhythm map(n => if(n.isLeft) Note(Some(pitchIterator.next()), n.left.get) else Note(None, n.right.get)))
+      val velocityIterator = velocities.toIterator
+      new Bar(rhythm map(n => if(n.isLeft) {
+        Note(Some(pitchIterator.next()), n.left.get, velocityIterator.next())
+      }
+        else Note(None, n.right.get, 0.asInstanceOf[Velocity])))
     }
   }
 

@@ -24,10 +24,13 @@ object PatternPlayer {
     receiver.sendSequence(player.getSequence(pattern))
   }
 
-  def apply(notes: Seq[primitives.Primitives.Note]): Unit = {
-    val jFugueNotes = notes map(n => new org.jfugue.theory.Note(n.pitch.getOrElse(0), n.duration).setRest(!n.pitch.isDefined))
+  def apply(notes: Seq[primitives.Primitives.Note], bpm:Int): Unit = {
+    val jFugueNotes = notes map(n =>
+      new org.jfugue.theory.Note(n.pitch.getOrElse(0), n.duration)
+        .setOnVelocity(n.velocity)
+        .setRest(!n.pitch.isDefined))
     val (receiver, player) = getReceiverAndPlayer()
-    val pattern = new Pattern()
+    val pattern = new Pattern().setTempo(bpm)
     jFugueNotes.foreach(n => pattern.add(n))
     receiver.sendSequence(player.getSequence(pattern))
   }

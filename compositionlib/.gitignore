@@ -1,3 +1,5 @@
+*.jar
+
 # Created by https://www.gitignore.io/api/sbt,scala
 
 ### SBT ###
