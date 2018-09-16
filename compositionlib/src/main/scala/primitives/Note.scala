@@ -35,17 +35,19 @@ object Primitives {
   type Rhythm = Seq[Either[Duration, RestDuration]]
 
   object Rhythm {
-    def apply(divideBarInto:Int, beatsAt: Seq[Int], noteDurations: Seq[Duration]):Rhythm = {
-      assert(beatsAt.max <= divideBarInto)
+    def apply(divisions:Int, beatsAt: Seq[Int], noteDurations: Seq[Duration], beats:Int=4, numBars:Int=1):Rhythm = {
+      assert(beatsAt.max <= divisions)
       assert(beatsAt.length == noteDurations.length)
 
-      val nonOverlapNoteDurations: Seq[Duration] = (0 until beatsAt.length -1 map(i => {
-        Vector((beatsAt(i+1) - beatsAt(i)).asInstanceOf[Duration], noteDurations(i)).min
-      })) :+ Vector((divideBarInto + 1 - beatsAt.last).asInstanceOf[Duration], noteDurations.last).min
+      val stepLen:Duration = beats / divisions
 
-      val restDurations: Iterator[RestDuration] = ((beatsAt.head - 1.0) +: ((0 until beatsAt.length -1) map(i => {
-        beatsAt(i+1) - beatsAt(i) - nonOverlapNoteDurations(i)
-      })) :+ divideBarInto + 1 - beatsAt.last - nonOverlapNoteDurations.last).map(_.asInstanceOf[RestDuration]).toIterator
+      val nonOverlapNoteDurations: Seq[Duration] = (0 until beatsAt.length -1 map(i => {
+        Vector((beatsAt(i+1) - beatsAt(i)) * stepLen, noteDurations(i)).min
+      })) :+ Vector((divisions + 1 - beatsAt.last) * stepLen, noteDurations.last).min
+
+      val restDurations: Iterator[RestDuration] = ((beatsAt.head - stepLen) +: ((0 until beatsAt.length -1) map(i => {
+        ((beatsAt(i+1) - beatsAt(i)) * stepLen) - nonOverlapNoteDurations(i)
+      })) :+ ((divisions + 1 - beatsAt.last) * stepLen) - nonOverlapNoteDurations.last).map(_.asInstanceOf[RestDuration]).toIterator
 
       val nonOverlapNoteDurationsIt = nonOverlapNoteDurations.toIterator
 
@@ -125,15 +127,15 @@ object Primitives {
 
   object Bar {
     //assumes number of non-rests are equal to number of pitches
-    def apply(notes: Seq[Pitch], rhythm: Rhythm, velocity: Velocity = 64): Bar = {
-      val velocities = Seq.fill(notes.length)(velocity)
-      apply(notes, rhythm, velocities)
+    def apply(pitches: Seq[Pitch], rhythm: Rhythm, velocity: Velocity = 64.asInstanceOf[Velocity]): Bar = {
+      val velocities = Seq.fill(pitches.length)(velocity)
+      apply(pitches, rhythm, velocities)
     }
 
-    def apply(notes: Seq[Pitch], rhythm: Rhythm, velocities: Seq[Velocity]): Bar = {
-      assert(notes.length == velocities.length)
-      assert(rhythm.filter(_.isLeft).length == notes.length)
-      val pitchIterator = notes.toIterator
+    def apply(pitches: Seq[Pitch], rhythm: Rhythm, velocities: Seq[Velocity]): Bar = {
+      assert(pitches.length == velocities.length)
+      assert(rhythm.filter(_.isLeft).length == pitches.length)
+      val pitchIterator = pitches.toIterator
       val velocityIterator = velocities.toIterator
       new Bar(rhythm map(n => if(n.isLeft) {
         Note(Some(pitchIterator.next()), n.left.get, velocityIterator.next())
