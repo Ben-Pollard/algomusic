@@ -1,13 +1,13 @@
 package midi
 
 import javax.sound.midi.{MidiEvent, MidiSystem, Sequence, ShortMessage}
-import models.Primitives.Duration
+import models.Primitives.{Bar, Duration}
 import org.jfugue.devices.MusicReceiver
 import org.jfugue.pattern.Pattern
 import org.jfugue.player.Player
 import java.time._
-import scala.collection.JavaConversions._
 
+import scala.collection.JavaConversions._
 import sys.process._
 
 object PatternPlayer {
@@ -54,7 +54,12 @@ object mySequencer {
   val noteOn: Command = 144
   val noteOff: Command = 128
 
-  def apply(notes: Seq[models.Primitives.Note], bpm:Int) = {
+  type OnOff = (Option[(ShortMessage, ShortMessage)], Long)
+  type MonophonicSequence = Seq[OnOff]
+  type PolyphonicSequence = Seq[MonophonicSequence]
+  type Arrangement = Seq[PolyphonicSequence]
+
+  def apply(bars: Seq[Bar], bpm:Int) = {
 
     //init device
     val devices = MidiSystem.getMidiDeviceInfo().toVector
@@ -68,30 +73,51 @@ object mySequencer {
 //    sequencer.open()
 //    var sequence = new Sequence(Sequence.PPQ, 1, 1) //divisionType, resolution in PPQ (ticks per quarter note), numTracks
 
-
-    val mySequence = notes.map {n =>
-      val ms: Long = (1000 * 60 * n.duration *  1 / bpm).toLong
-      if (n.pitch.isDefined) {
-        //translate note duration to ms
-        val onMessage = new ShortMessage()
-        val offMessage = new ShortMessage()
-        onMessage.setMessage(noteOn, 1, n.pitch.get, n.velocity) //command, channel, note, velocity
-        offMessage.setMessage(noteOff, 1, n.pitch.get, n.velocity) //command, channel, note, velocity
-        (Some(onMessage ,offMessage), ms)
-      } else (None, ms)
-    }
-
-    for (m <- mySequence) {
-      if (m._1.isDefined) {
-        receiver.send(m._1.get._1, -1)
+    //We have 3 nested seqs. Outer=bars, they happen sequentially. Middle=seq of monophonic sequences, they happen concurrently
+    val arrangement: Arrangement = bars.map{ bar =>
+      bar.notes.map{s =>
+        val monophonicSequence = s.map {n =>
+        val ms: Long = (1000 * 60 * n.duration *  1 / bpm).toLong
+        if (n.pitch.isDefined) {
+          //translate note duration to ms
+          val onMessage = new ShortMessage()
+          val offMessage = new ShortMessage()
+          onMessage.setMessage(noteOn, 1, n.pitch.get, n.velocity) //command, channel, note, velocity
+          offMessage.setMessage(noteOff, 1, n.pitch.get, n.velocity) //command, channel, note, velocity
+          (Some(onMessage ,offMessage), ms)
+        } else (None, ms)
       }
-
-      Thread.sleep(m._2)
-
-      if (m._1.isDefined) {
-        receiver.send(m._1.get._2, -1)
+        monophonicSequence
       }
     }
+
+
+    def monophonicSequencer(monophonicSequence: MonophonicSequence): Unit = {
+      for (m <- monophonicSequence) {
+        if (m._1.isDefined) {
+          receiver.send(m._1.get._1, -1)
+        }
+
+        Thread.sleep(m._2)
+
+        if (m._1.isDefined) {
+          receiver.send(m._1.get._2, -1)
+        }
+      }
+    }
+
+    def polyphonicSequencer(polyphonicSequence: PolyphonicSequence): Unit = {
+      polyphonicSequence.par.map(s => monophonicSequencer(s))
+    }
+
+    def arrangementPlayer(arrangement: Arrangement): Unit = {
+      for (polyphonicSequence <- arrangement) {
+        polyphonicSequencer(polyphonicSequence)
+      }
+    }
+
+
+    arrangementPlayer(arrangement)
 
     receiver.close()
     device.close()

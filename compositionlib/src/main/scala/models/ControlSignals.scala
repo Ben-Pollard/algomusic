@@ -4,7 +4,7 @@ import models.Primitives._
 
 object ControlSignals {
 
-  val midiNoteNames: Map[String, MidiNote] = Map(
+  val midiNoteNames: Map[String, MidiPitch] = Map(
     "C" -> 60,
     "C#" -> 61,
     "D" -> 62,
