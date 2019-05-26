@@ -1,4 +1,6 @@
-package primitives
+package models
+
+import models.Scales.majorScalePattern
 
 object Primitives {
 
@@ -11,12 +13,15 @@ object Primitives {
   }
 
   //TONE AND PITCH
-  type Pitch = Int
-  val midiRange: Seq[Pitch] = 0 to 127
+  type MidiNote = Int
+  val midiRange: Seq[MidiNote] = 0 to 127
 
   type Tone = Int
   val semiTone: Tone = 1
   val tone: Tone = 2
+
+  type ScaleDegree = Int
+  type Octave = Int
 
 
   //DURATION AND RHYTHM
@@ -57,9 +62,9 @@ object Primitives {
 
 
   //SCALE
-  type ScaleDegree = Int
 
-  case class Scale(pitches: Seq[Pitch], root: Pitch, degreeMap: Map[ScaleDegree, Pitch]) {
+
+  case class Scale(pitches: Seq[MidiNote], root: MidiNote, degreeMap: Map[ScaleDegree, MidiNote]) {
 
     def getDegreePitch(d: Int) = {
       degreeMap.get(d).get
@@ -72,25 +77,25 @@ object Primitives {
   }
 
   object Scale {
-    def apply(pattern: Seq[Tone], root: Pitch):Scale = {
+    def apply(pattern: Seq[Tone], root: MidiNote):Scale = {
       assert(pattern.sum==12)
 
-      val degreeMap =
-        Seq.fill(2)(pattern.scanLeft(0)(_+_).take(7) map(_+root))
-          .zipWithIndex
-          .flatMap(s => s._1 map(_+s._2*12))
-          .zipWithIndex map(p => (p._2 + 1, p._1)) toMap
+      val degreeMap: Map[ScaleDegree, MidiNote] = Seq.fill(10)(pattern.scanLeft(0)(_+_).dropRight(1).map(_+root))
+        .map(_.zipWithIndex).zipWithIndex
+        .flatMap(i => i._1.map(j => (j._1 + 12*(i._2-5), j._2 + 1 + 7*(i._2-5))))
+        .map(_.swap)
+        .filter(x => x._2>0 & x._2<=midiRange.max)
+        .toMap
 
-      val pitches =
-        Seq.fill(10)(pattern.scanRight(0)(_+_).takeRight(7).reverse)
-        .zipWithIndex
-        .flatMap(s => s._1 map(i => root - (i + s._2*12) ))
-        .reverse
-        .filter(n => n>=0 & n<root) ++
-        Seq.fill(10)(pattern.scanLeft(0)(_+_).take(7) map(_+root))
-          .zipWithIndex
-          .flatMap(s => s._1 map(_+s._2*12))
-          .filter(_<=midiRange.max)
+      val degreeOctaveMap: Map[(ScaleDegree, Octave), MidiNote] = Seq.fill(10)(majorScalePattern.scanLeft(0)(_+_).dropRight(1).map(_+root))
+        .map(_.zipWithIndex).zipWithIndex
+        .flatMap(i => i._1.map(j => (j._1 + 12*(i._2-5), (j._2 + 1, (i._2-5)))))
+        .map(_.swap)
+        .filter(x => x._2>0 & x._2<=midiRange.max)
+        .toMap
+
+
+      val pitches = degreeMap.values.toList.sorted
 
       new Scale(pitches, root, degreeMap)
     }
@@ -101,7 +106,7 @@ object Primitives {
 
 
   //NOTE
-  case class Note(pitch: Option[Pitch], duration:Duration, velocity: Velocity)
+  case class Note(pitch: Option[MidiNote], duration:Duration, velocity: Velocity)
 
   object Rest {
     def apply(duration: Duration) = new Note(None, duration, 0)
@@ -115,8 +120,8 @@ object Primitives {
 
 
   //PITCH CONSTRUCTORS
-  object Pitch {
-    def apply(scale: Scale, degree: Int):Pitch = {
+  object MidiNote {
+    def apply(scale: Scale, degree: Int):MidiNote = {
       scale.getDegreePitch(degree)
     }
   }
@@ -127,12 +132,12 @@ object Primitives {
 
   object Bar {
     //assumes number of non-rests are equal to number of pitches
-    def apply(pitches: Seq[Pitch], rhythm: Rhythm, velocity: Velocity = 64.asInstanceOf[Velocity]): Bar = {
+    def apply(pitches: Seq[MidiNote], rhythm: Rhythm, velocity: Velocity = 64.asInstanceOf[Velocity]): Bar = {
       val velocities = Seq.fill(pitches.length)(velocity)
       apply(pitches, rhythm, velocities)
     }
 
-    def apply(pitches: Seq[Pitch], rhythm: Rhythm, velocities: Seq[Velocity]): Bar = {
+    def apply(pitches: Seq[MidiNote], rhythm: Rhythm, velocities: Seq[Velocity]): Bar = {
       assert(pitches.length == velocities.length)
       assert(rhythm.filter(_.isLeft).length == pitches.length)
       val pitchIterator = pitches.toIterator
