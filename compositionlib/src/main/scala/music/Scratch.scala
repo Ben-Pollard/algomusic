@@ -4,13 +4,18 @@ import midi.{PatternPlayer, mySequencer}
 import models.Primitives._
 import models.ControlSignals._
 import models.Scales._
+import Generators.RhythmGenerators._
+import Transformers.MelodyTransformers._
 
 object Scratch extends App {
   var scale = Scale(majorScalePattern, midiNoteNames.get("C").get)
-  val degrees1 = Seq(1,3,5,8).map(d => MidiPitch(scale, d))
-  val degrees2 = Seq(5,7,9,12).map(d => MidiPitch(scale, d))
-//  val velocities = Seq.fill(pitches.length/2)(Velocities(Seq(120,60))).flatten
-  val rhythm = Rhythm(divisions = 4, beatsAt=Seq(1,2,3,4), noteDurations=Seq(q,q,q,q), beats=4, numBars=1)
-  val bar = Bar(degrees1 :: degrees2 :: Nil, rhythm)
-  mySequencer(bar :: Nil, 60)
+  val melody = List(1,3,6,7,5)
+  val chordDegrees = List(1,3,5)
+  val polyphonicPhrase = chordDegrees.map(d => Phrase(melody.map(m => m+d), scale))
+  val transposed = transpose(polyphonicPhrase, -16)
+  val rhythm = bjorklund(14,5, hitDurations=Seq(w,q,h,w,q))
+
+  val phrases: PolyphonicPhrase = polyphonicPhrase ++ transposed
+  val bar = Bar(phrases, rhythm)
+  mySequencer(List.fill(3)(bar), 100)
 }

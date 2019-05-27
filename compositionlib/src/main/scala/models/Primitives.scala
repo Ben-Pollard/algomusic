@@ -41,30 +41,46 @@ object Primitives {
   type Rhythm = Seq[Either[Duration, RestDuration]]
 
   object Rhythm {
-    def apply(divisions:Int, beatsAt: Seq[Int], noteDurations: Seq[Duration], beats:Int=4, numBars:Int=1):Rhythm = {
-      assert(beatsAt.max <= divisions)
-      assert(beatsAt.length == noteDurations.length)
+    def apply(steps:Int, hitIndices: Seq[Int], hitDurations: Seq[Duration]): Rhythm = {
+      assert(hitIndices.max <= steps)
+      assert(hitIndices.length == hitDurations.length)
 
-      val stepLen:Duration = beats / divisions
+//      val beatPattern = List.fill(steps)(0).zipWithIndex.map(x => if (hitIndices.contains(x._2)) 1 else 0)
+//      val stepDuration: Duration = hitIndices.length.toDouble / steps
+//      val restDuration: RestDuration = stepDuration
+//      val patternAsDurations = beatPattern.map(x => if (x==1) Left(stepDuration) else Right(restDuration))
+//      val accountForNoteLength = patternAsDurations.reduce((a,b) => {
+//        (a.isLeft,b.isLeft) match {
+//          case (true, true) => List(Left(List(a.left.get, stepDuration).max), b.left)
+//          case (true, false) => List(a.left, b.right)
+//          case (false, true) => List(Right(List(a.right.get, restDuration).max), b.left)
+//          case (false, false) => List(a.right, b.right)
+//
+//        }
+//      })
 
-      val nonOverlapNoteDurations: Seq[Duration] = (0 until beatsAt.length -1 map(i => {
-        Vector((beatsAt(i+1) - beatsAt(i)) * stepLen, noteDurations(i)).min
-      })) :+ Vector((divisions + 1 - beatsAt.last) * stepLen, noteDurations.last).min
+      val stepLen:Duration = hitIndices.length.toDouble / steps
 
-      val restDurations: Iterator[RestDuration] = ((beatsAt.head - stepLen) +: ((0 until beatsAt.length -1) map(i => {
-        ((beatsAt(i+1) - beatsAt(i)) * stepLen) - nonOverlapNoteDurations(i)
-      })) :+ ((divisions + 1 - beatsAt.last) * stepLen) - nonOverlapNoteDurations.last).map(_.asInstanceOf[RestDuration]).toIterator
+      val nonOverlapHitDurations: Seq[Duration] = (0 until hitIndices.length -1 map(i => {
+        Vector((hitIndices(i+1) - hitIndices(i)) * stepLen, hitDurations(i)).min
+      })) :+ Vector((steps + 1 - hitIndices.last) * stepLen, hitDurations.last).min
 
-      val nonOverlapNoteDurationsIt = nonOverlapNoteDurations.toIterator
+      val restDurations: Seq[RestDuration] = ((hitIndices.head * -stepLen) +: ((0 until hitIndices.length -1) map(i => {
+        ((hitIndices(i+1) - hitIndices(i)) * stepLen) - nonOverlapHitDurations(i)
+      })) :+ ((steps - hitIndices.last) * stepLen) - nonOverlapHitDurations.last)
 
-      1 to (beatsAt.length*2 + 1) map(b => if(b % 2 == 0) Left(nonOverlapNoteDurationsIt.next()) else Right(restDurations.next()))
+      assert(hitDurations.sum + "%.12f".format(restDurations.sum).toDouble == hitIndices.length)
+
+      val nonOverlapNoteDurationsIt = nonOverlapHitDurations.toIterator
+      val restDurationsIt = restDurations.toIterator
+
+      1 to (hitIndices.length*2 + 1) map(b => if(b % 2 == 0) Left(nonOverlapNoteDurationsIt.next()) else Right(restDurationsIt.next()))
     }
   }
 
 
+
   //SCALE
-
-
   case class Scale(pitches: Seq[MidiPitch], root: MidiPitch, degreeMap: Map[ScaleDegree, MidiPitch]) {
 
     def getDegreePitch(d: Int) = {
@@ -107,18 +123,18 @@ object Primitives {
 
 
   //NOTE
-  case class Note(pitch: Option[MidiPitch], duration:Duration, velocity: Velocity)
+  case class MidiNote(pitch: Option[MidiPitch], duration:Duration, velocity: Velocity)
 
-  object Note {
+  object MidiNote {
     val v: Byte = 64
     def apply(pitch: Option[MidiPitch], duration:Duration = q, velocity: Velocity = v) = {
-      new Note(pitch, duration, velocity)
+      new MidiNote(pitch, duration, velocity)
     }
   }
 
   object Rest {
     val v: Byte = 0
-    def apply(duration: Duration) = new Note(None, duration, v)
+    def apply(duration: Duration) = new MidiNote(None, duration, v)
   }
 
 
@@ -132,19 +148,21 @@ object Primitives {
 
 
   //SEQUENCES
-  type MonophonicPitchSequence = Seq[MidiPitch]
-  type PolyphonicPitchSequence = Seq[MonophonicPitchSequence]
+  case class Phrase(degreeSequence: List[ScaleDegree], scale: Scale) // a phrase is monophonic
+  type PolyphonicPhrase = List[Phrase]
 
   //A bar returns a sequence of sequences of notes, to be played in parallel
   //Construct with one rhythm for chords, or multiple rhythms for more complex harmony
   //Each sequence is monophonic - no overlaps between notes
-  case class Bar(notes: Seq[Seq[Note]])
+  case class Bar(notes: Seq[Seq[MidiNote]])
 
   object Bar {
     //assumes number of non-rests are equal to number of pitches
 
 
-    def apply(pitches: MonophonicPitchSequence, rhythm: Rhythm, velocities: Option[Seq[Velocity]]): Bar = {
+    def apply(phrase: Phrase, rhythm: Rhythm, velocities: Option[Seq[Velocity]]): Bar = {
+
+      val pitches = phrase.degreeSequence.map(d => MidiPitch(phrase.scale, d))
 
       if (velocities.isDefined) {
         assert(pitches.length == velocities.get.length)
@@ -152,12 +170,12 @@ object Primitives {
       assert(rhythm.filter(_.isLeft).length == pitches.length)
 
       val onNotes = if (!velocities.isDefined) {
-        pitches zip rhythm.filter(_.isLeft) map {n =>
-            Note(Some(n._1), n._2.left.get)
+        pitches zip rhythm.filter(_.isLeft) map { n =>
+            MidiNote(Some(n._1), n._2.left.get)
         }
       } else {
-        pitches zip rhythm.filter(_.isLeft) zip velocities.get map {n =>
-            Note(Some(n._1._1), n._1._2.left.get, n._2)
+        pitches zip rhythm.filter(_.isLeft) zip velocities.get map { n =>
+            MidiNote(Some(n._1._1), n._1._2.left.get, n._2)
         }
       }
 
@@ -168,21 +186,21 @@ object Primitives {
       Bar(notes :: Nil)
     }
 
-    def apply(pitches: MonophonicPitchSequence, rhythm: Rhythm, velocity: Velocity): Bar = {
-      val velocities = Seq.fill(pitches.length)(velocity)
-      apply(pitches, rhythm, Some(velocities))
+    def apply(phrase: Phrase, rhythm: Rhythm, velocity: Velocity): Bar = {
+      val velocities = Seq.fill(phrase.degreeSequence.length)(velocity)
+      apply(phrase, rhythm, Some(velocities))
     }
 
-    def apply(pitches: PolyphonicPitchSequence, rhythm: Rhythm, velocities: Seq[Velocity]): Bar = {
-      Bar(pitches.map{m =>
-        val mono: MonophonicPitchSequence = m
+    def apply(phrases: PolyphonicPhrase, rhythm: Rhythm, velocities: Seq[Velocity]): Bar = {
+      Bar(phrases.map{ m =>
+        val mono: Phrase = m
         apply(mono, rhythm, Some(velocities))
       }.flatMap(n => n.notes))
     }
 
-    def apply(pitches: PolyphonicPitchSequence, rhythm: Rhythm): Bar = {
-      Bar(pitches.map{m =>
-        val mono: MonophonicPitchSequence = m
+    def apply(phrases: PolyphonicPhrase, rhythm: Rhythm): Bar = {
+      Bar(phrases.map{ m =>
+        val mono: Phrase = m
         apply(mono, rhythm, None)
       }.flatMap(n => n.notes))
     }

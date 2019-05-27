@@ -8,6 +8,7 @@ import org.jfugue.player.Player
 import java.time._
 
 import scala.collection.JavaConversions._
+import scala.collection.parallel.ForkJoinTaskSupport
 import sys.process._
 
 object PatternPlayer {
@@ -30,7 +31,7 @@ object PatternPlayer {
     receiver.sendSequence(player.getSequence(pattern))
   }
 
-  def apply(notes: Seq[models.Primitives.Note], bpm:Int): Unit = {
+  def apply(notes: Seq[models.Primitives.MidiNote], bpm:Int): Unit = {
 
     val jFugueNotes = notes map{n =>
       new org.jfugue.theory.Note(n.pitch.getOrElse(0), n.duration)
@@ -63,6 +64,7 @@ object mySequencer {
 
     //init device
     val devices = MidiSystem.getMidiDeviceInfo().toVector
+    println(s"Devices: ${devices.mkString("; ")}")
     val chosenDeviceString = devices.filter(_.getName()=="VirMIDI [hw:3,0,0]").last
     val device = MidiSystem.getMidiDevice(chosenDeviceString)
     device.open()
@@ -107,7 +109,10 @@ object mySequencer {
     }
 
     def polyphonicSequencer(polyphonicSequence: PolyphonicSequence): Unit = {
-      polyphonicSequence.par.map(s => monophonicSequencer(s))
+      val forkJoinPool = new java.util.concurrent.ForkJoinPool(polyphonicSequence.length)
+      val pc = polyphonicSequence.par
+      pc.tasksupport = new ForkJoinTaskSupport(forkJoinPool)
+      pc.map(s => monophonicSequencer(s))
     }
 
     def arrangementPlayer(arrangement: Arrangement): Unit = {
