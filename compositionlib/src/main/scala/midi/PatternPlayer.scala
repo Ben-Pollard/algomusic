@@ -1,55 +1,13 @@
 package midi
 
-import javax.sound.midi.{MidiEvent, MidiSystem, Sequence, ShortMessage}
-import models.Primitives.{Bar, Duration}
-import org.jfugue.devices.MusicReceiver
-import org.jfugue.pattern.Pattern
-import org.jfugue.player.Player
-import java.time._
+import javax.sound.midi.{MidiDevice, MidiEvent, MidiSystem, Receiver, Sequence, ShortMessage}
+import models.Primitives.{Bar, BarSequence, Duration, ParallelBarSequences}
 
-import scala.collection.JavaConversions._
 import scala.collection.parallel.ForkJoinTaskSupport
-import sys.process._
-
-object PatternPlayer {
-
-  def getReceiverAndPlayer(): (MusicReceiver, Player) = {
-    val devices = MidiSystem.getMidiDeviceInfo().toVector
-    //JACK settings: monitor, hw out, no midi driver, alsa bridge running
-    //patchbay settings: virmidi->carla midi; carla audio -> system audio
-    "sudo modprobe snd-virmidi".! // get virtual devices to show up
-    println(s"Devices: ${devices.mkString("; ")}")
-    val chosenDeviceString = devices.filter(_.getName()=="VirMIDI [hw:3,0,0]").last
-    val device = MidiSystem.getMidiDevice(chosenDeviceString)
-    val receiver = new MusicReceiver(device)
-    val player = new Player()
-    (receiver, player)
-  }
-
-  def apply(pattern: Pattern): Unit = {
-    val (receiver, player) = getReceiverAndPlayer()
-    receiver.sendSequence(player.getSequence(pattern))
-  }
-
-  def apply(notes: Seq[models.Primitives.MidiNote], bpm:Int): Unit = {
-
-    val jFugueNotes = notes map{n =>
-      new org.jfugue.theory.Note(n.pitch.getOrElse(0), n.duration)
-        .setOnVelocity(n.velocity)
-        .setRest(!n.pitch.isDefined)}
-
-    val (receiver, player) = getReceiverAndPlayer()
-
-    val pattern = new Pattern().setTempo(bpm)
-
-    jFugueNotes.foreach(n => pattern.add(n))
-    receiver.sendSequence(player.getSequence(pattern))
-  }
-
-}
+import scala.concurrent.forkjoin.ForkJoinPool
 
 
-object mySequencer {
+object Sequencer {
 
   type Command = java.lang.Integer
   val noteOn: Command = 144
@@ -58,17 +16,29 @@ object mySequencer {
   type OnOff = (Option[(ShortMessage, ShortMessage)], Long)
   type MonophonicSequence = Seq[OnOff]
   type PolyphonicSequence = Seq[MonophonicSequence]
-  type Arrangement = Seq[PolyphonicSequence]
+  type SequenceOfSequences = Seq[PolyphonicSequence]
+  type Arrangement = Seq[SequenceOfSequences]
 
-  def apply(bars: Seq[Bar], bpm:Int) = {
-
-    //init device
+  def getDevice(midiDeviceString: String): MidiDevice = {
     val devices = MidiSystem.getMidiDeviceInfo().toVector
-    println(s"Devices: ${devices.mkString("; ")}")
-    val chosenDeviceString = devices.filter(_.getName()=="VirMIDI [hw:3,0,0]").last
-    val device = MidiSystem.getMidiDevice(chosenDeviceString)
+    println(s"Available Devices: ${devices.mkString("; ")}")
+
+    try {
+      val chosenDeviceString = devices.filter(_.getName()==midiDeviceString).last
+      MidiSystem.getMidiDevice(chosenDeviceString)
+    } catch {
+      case e: java.lang.UnsupportedOperationException => throw new IllegalArgumentException(s"Specified device $midiDeviceString not found")
+    }
+
+  }
+
+  def apply(parallelBars: Seq[BarSequence], bpm:Int, midiDeviceString: String = "Gervill") = {
+
+    //init receiver
+    val device = getDevice(midiDeviceString)
     device.open()
     val receiver = device.getReceiver
+
 
     //init sequence
 //    var sequencer = MidiSystem.getSequencer
@@ -76,20 +46,22 @@ object mySequencer {
 //    var sequence = new Sequence(Sequence.PPQ, 1, 1) //divisionType, resolution in PPQ (ticks per quarter note), numTracks
 
     //We have 3 nested seqs. Outer=bars, they happen sequentially. Middle=seq of monophonic sequences, they happen concurrently
-    val arrangement: Arrangement = bars.map{ bar =>
-      bar.notes.map{s =>
-        val monophonicSequence = s.map {n =>
-        val ms: Long = (1000 * 60 * n.duration *  1 / bpm).toLong
-        if (n.pitch.isDefined) {
-          //translate note duration to ms
-          val onMessage = new ShortMessage()
-          val offMessage = new ShortMessage()
-          onMessage.setMessage(noteOn, 1, n.pitch.get, n.velocity) //command, channel, note, velocity
-          offMessage.setMessage(noteOff, 1, n.pitch.get, n.velocity) //command, channel, note, velocity
-          (Some(onMessage ,offMessage), ms)
-        } else (None, ms)
-      }
-        monophonicSequence
+    val arrangement: Arrangement = parallelBars.map { bars =>
+      bars.bars.map { bar =>
+        bar.notes.map { s =>
+          val monophonicSequence = s.map { n =>
+            val ms: Long = (n.duration * 60.0 * 1000.0 / bpm.toDouble).toLong
+            if (n.pitch.isDefined) {
+              //translate note duration to ms
+              val onMessage = new ShortMessage()
+              val offMessage = new ShortMessage()
+              onMessage.setMessage(noteOn, 1, n.pitch.get, n.velocity) //command, channel, note, velocity
+              offMessage.setMessage(noteOff, 1, n.pitch.get, n.velocity) //command, channel, note, velocity
+              (Some(onMessage, offMessage), ms)
+            } else (None, ms)
+          }
+          monophonicSequence
+        }
       }
     }
 
@@ -108,17 +80,27 @@ object mySequencer {
       }
     }
 
+    //Plays the contents of a bar. Executes each phrase in parallel.
     def polyphonicSequencer(polyphonicSequence: PolyphonicSequence): Unit = {
-      val forkJoinPool = new java.util.concurrent.ForkJoinPool(polyphonicSequence.length)
       val pc = polyphonicSequence.par
-      pc.tasksupport = new ForkJoinTaskSupport(forkJoinPool)
+      pc.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(polyphonicSequence.length))
       pc.map(s => monophonicSequencer(s))
     }
 
-    def arrangementPlayer(arrangement: Arrangement): Unit = {
-      for (polyphonicSequence <- arrangement) {
-        polyphonicSequencer(polyphonicSequence)
+    //Plays sequences of bars
+    def sequencePlayer(sequenceOfSequences: SequenceOfSequences): Unit = {
+      for (sequence <- sequenceOfSequences) {
+        polyphonicSequencer(sequence)
       }
+    }
+
+    //Plays the bar sequences in parallel
+    def arrangementPlayer(arrangement: Arrangement): Unit = {
+      val parallelism = arrangement.map(s => s.map(p => p.length).max).max * arrangement.length
+      val pc = arrangement.par
+      pc.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(parallelism))
+      pc.map(layer => sequencePlayer(layer))
+
     }
 
 

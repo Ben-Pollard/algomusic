@@ -38,43 +38,53 @@ object Primitives {
   val rw: RestDuration = 1
 
 
-  type Rhythm = Seq[Either[Duration, RestDuration]]
+  type RhythmDurations = Seq[Either[Duration, RestDuration]]
+
+  //the job of this class is to carry the note/rest durations for the Midi Sequencer, along with information used by the transformers
+  case class Rhythm(steps: Int, subdivisions: Int, hitIndices: Seq[(Int,Int)], hitDurations: Seq[Duration], durations: RhythmDurations) {
+    assert((steps/subdivisions).isValidInt)
+  }
 
   object Rhythm {
+
+    //durations are expressed in beats
+    //steps are whole, not whole*subdivisions
+    //hit indices are expressed as indexes into beats, then into subdivisions
+
+
+    //constructor for rhythms with no off-beat hits
     def apply(steps:Int, hitIndices: Seq[Int], hitDurations: Seq[Duration]): Rhythm = {
-      assert(hitIndices.max <= steps)
+      apply(steps, 1, hitIndices.map(i => (i,0)), hitDurations)
+    }
+
+    //base constructor to yield durations with rests
+    def apply(steps:Int, subdivisions: Int, hitIndices: Seq[(Int,Int)], hitDurations: Seq[Duration]): Rhythm = {
+      assert(hitIndices.map(_._1).max <= steps - 1)
+      assert(hitIndices.map(_._2).max < subdivisions)
       assert(hitIndices.length == hitDurations.length)
 
-//      val beatPattern = List.fill(steps)(0).zipWithIndex.map(x => if (hitIndices.contains(x._2)) 1 else 0)
-//      val stepDuration: Duration = hitIndices.length.toDouble / steps
-//      val restDuration: RestDuration = stepDuration
-//      val patternAsDurations = beatPattern.map(x => if (x==1) Left(stepDuration) else Right(restDuration))
-//      val accountForNoteLength = patternAsDurations.reduce((a,b) => {
-//        (a.isLeft,b.isLeft) match {
-//          case (true, true) => List(Left(List(a.left.get, stepDuration).max), b.left)
-//          case (true, false) => List(a.left, b.right)
-//          case (false, true) => List(Right(List(a.right.get, restDuration).max), b.left)
-//          case (false, false) => List(a.right, b.right)
-//
-//        }
-//      })
+      val totalSubdivisions = steps * subdivisions
 
-      val stepLen:Duration = hitIndices.length.toDouble / steps
+      val indicesIntoSubdivisions = hitIndices.map(i => i._1*subdivisions + i._2)
 
-      val nonOverlapHitDurations: Seq[Duration] = (0 until hitIndices.length -1 map(i => {
-        Vector((hitIndices(i+1) - hitIndices(i)) * stepLen, hitDurations(i)).min
-      })) :+ Vector((steps + 1 - hitIndices.last) * stepLen, hitDurations.last).min
+      val subDivisionLen:Duration = steps / totalSubdivisions.toDouble
 
-      val restDurations: Seq[RestDuration] = ((hitIndices.head * -stepLen) +: ((0 until hitIndices.length -1) map(i => {
-        ((hitIndices(i+1) - hitIndices(i)) * stepLen) - nonOverlapHitDurations(i)
-      })) :+ ((steps - hitIndices.last) * stepLen) - nonOverlapHitDurations.last)
+      val nonOverlapHitDurations: Seq[Duration] = (0 until indicesIntoSubdivisions.length -1 map(i => {
+        Vector((indicesIntoSubdivisions(i+1) - indicesIntoSubdivisions(i)) * subDivisionLen, hitDurations(i)).min
+      })) :+ Vector((totalSubdivisions - subdivisions - indicesIntoSubdivisions.last) * subDivisionLen, hitDurations.last).min
 
-      assert(hitDurations.sum + "%.12f".format(restDurations.sum).toDouble == hitIndices.length)
+      val restDurations: Seq[RestDuration] = ((indicesIntoSubdivisions.head * subDivisionLen) +: ((0 until indicesIntoSubdivisions.length -1) map(i => {
+        ((indicesIntoSubdivisions(i+1) - indicesIntoSubdivisions(i)) * subDivisionLen) - nonOverlapHitDurations(i)
+      })) :+ ((totalSubdivisions - indicesIntoSubdivisions.last) * subDivisionLen) - nonOverlapHitDurations.last)
+
+      assert("%.12f".format(nonOverlapHitDurations.sum + restDurations.sum).toDouble == steps.toDouble)
 
       val nonOverlapNoteDurationsIt = nonOverlapHitDurations.toIterator
       val restDurationsIt = restDurations.toIterator
 
-      1 to (hitIndices.length*2 + 1) map(b => if(b % 2 == 0) Left(nonOverlapNoteDurationsIt.next()) else Right(restDurationsIt.next()))
+      val durations = 1 to (hitIndices.length*2 + 1) map(b => if(b % 2 == 0) Left(nonOverlapNoteDurationsIt.next()) else Right(restDurationsIt.next()))
+
+      new Rhythm(steps, subdivisions, hitIndices, hitDurations, durations)
     }
   }
 
@@ -155,6 +165,8 @@ object Primitives {
   //Construct with one rhythm for chords, or multiple rhythms for more complex harmony
   //Each sequence is monophonic - no overlaps between notes
   case class Bar(notes: Seq[Seq[MidiNote]])
+  case class BarSequence(bars: List[Bar])
+  type ParallelBarSequences = List[BarSequence]
 
   object Bar {
     //assumes number of non-rests are equal to number of pitches
@@ -167,19 +179,19 @@ object Primitives {
       if (velocities.isDefined) {
         assert(pitches.length == velocities.get.length)
       }
-      assert(rhythm.filter(_.isLeft).length == pitches.length)
+      assert(rhythm.durations.filter(_.isLeft).length == pitches.length)
 
       val onNotes = if (!velocities.isDefined) {
-        pitches zip rhythm.filter(_.isLeft) map { n =>
+        pitches zip rhythm.durations.filter(_.isLeft) map { n =>
             MidiNote(Some(n._1), n._2.left.get)
         }
       } else {
-        pitches zip rhythm.filter(_.isLeft) zip velocities.get map { n =>
+        pitches zip rhythm.durations.filter(_.isLeft) zip velocities.get map { n =>
             MidiNote(Some(n._1._1), n._1._2.left.get, n._2)
         }
       }
 
-      val rests = rhythm.filter(_.isRight).map(r => Rest(r.right.get))
+      val rests = rhythm.durations.filter(_.isRight).map(r => Rest(r.right.get))
 
       val notes = rests.zipAll(onNotes, Rest(0), Rest(0)).flatMap(pair => List(pair._1, pair._2))
 

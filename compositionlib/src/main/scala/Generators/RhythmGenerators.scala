@@ -9,26 +9,33 @@ object RhythmGenerators {
   //8,5 = cinquillo
   //4,3 = cumbia
   //16,5 = bossa nova
-  def bjorklund(steps: Int, hits: Int, hitDurations: Seq[Duration]): Rhythm = {
+  def bjorklund(len: Int, notes: Int, hitDurations: Seq[Duration]): Rhythm = {
 
-    val startTop = List.fill(hits)(List(1.asInstanceOf[Byte])) ++ List.fill(steps % hits)(List(0.asInstanceOf[Byte]))
-    val startTail =  List.fill(hits)(List(0.asInstanceOf[Byte]))
+    val beats = List.fill(notes)(List(1.asInstanceOf[Byte]))
+    val nonBeats =  List.fill(len - notes)(List(0.asInstanceOf[Byte]))
+    val initList = if (nonBeats.length > beats.length) {
+      beats.zip(nonBeats).map(b => b._1 ++ b._2) ++ nonBeats.takeRight(len - 2 * notes)
+    } else{
+      nonBeats.zip(beats).map(b => b._1 ++ b._2) ++ beats.takeRight(2 * notes - len)
+    }
 
-    def Euclidean(len: Int, notes:Int, list: (List[List[Byte]], List[List[Byte]])): (List[List[Byte]], List[List[Byte]]) = {
-      if (list._2.length == 1) {
+
+    def euclidean(len: Int, notes:Int, list: List[List[Byte]]): List[List[Byte]] = {
+      if (len == 1) {
         list
       } else {
-        val top = list._1.zip(list._2).map(x => x._1 ++ x._2)
-        val tail = list._1.takeRight(len % notes)
-        Euclidean(notes, len % notes, (top,tail))
+        val joinableNum = List(len, list.length - len).min
+        val leftOverNum = list.length - 2 * joinableNum
+        val head = list.take(joinableNum).zip(list.takeRight(joinableNum)).map(x => x._1 ++ x._2)
+        val tail = list.slice(joinableNum, joinableNum + leftOverNum)
+        euclidean(notes, len % notes, head ++ tail)
       }
     }
 
-    val (endTop, endTail) = Euclidean(steps, hits, (startTop, startTail))
-    val beatPattern = (endTop ++ endTail).flatten
+    val beatPattern = euclidean(notes, len % notes, initList).flatten
 
     val hitIndices = beatPattern.zipWithIndex.filter(_._1==1).map(_._2)
-    Rhythm(steps, hitIndices, hitDurations)
+    Rhythm(len, hitIndices , hitDurations)
 
   }
 
