@@ -1,4 +1,4 @@
-package Generators
+package generators
 
 import models.Primitives._
 
