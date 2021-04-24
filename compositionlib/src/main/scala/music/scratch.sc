@@ -1,4 +1,1 @@
-val oldDivs = 3
-val newDivs = 2
-val oldIndex = 2
-val newIndex = oldIndex * newDivs / oldDivs
+0 to 10 toList

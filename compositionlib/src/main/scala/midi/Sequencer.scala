@@ -19,23 +19,23 @@ object Sequencer {
   type SequenceOfSequences = Seq[PolyphonicSequence]
   type Arrangement = Seq[SequenceOfSequences]
 
-  def getDevice(midiDeviceString: String): MidiDevice = {
-    val devices = MidiSystem.getMidiDeviceInfo().toVector
-    println(s"Available Devices: ${devices.mkString("; ")}")
+  def getDevice(midiDevice: OutDevices.Value): MidiDevice = {
+    val midiOutDevices = MidiSystem.getMidiDeviceInfo().toVector.filter(_.getClass.getName == "com.sun.media.sound.MidiOutDeviceProvider$MidiOutDeviceInfo")
+    println(s"Available MIDI Out Devices: ${midiOutDevices.mkString("; ")}")
 
     try {
-      val chosenDeviceString = devices.filter(_.getName()==midiDeviceString).last
-      MidiSystem.getMidiDevice(chosenDeviceString)
+      val deviceInfo = midiOutDevices.find(_.getName()==midiDevice.toString).get
+      MidiSystem.getMidiDevice(deviceInfo)
     } catch {
-      case e: java.lang.UnsupportedOperationException => throw new IllegalArgumentException(s"Specified device $midiDeviceString not found")
+      case e: java.lang.UnsupportedOperationException => throw new IllegalArgumentException(s"Specified device $midiDevice not found")
     }
 
   }
 
-  def apply(parallelBars: Seq[BarSequence], bpm:Int, midiDeviceString: String = "Gervill") = {
+  def apply(parallelBars: Seq[BarSequence], bpm:Int, midiDevice: OutDevices.Value) = {
 
     //init receiver
-    val device = getDevice(midiDeviceString)
+    val device = getDevice(midiDevice)
     device.open()
     val receiver = device.getReceiver
 

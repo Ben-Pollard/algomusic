@@ -1,10 +1,10 @@
 package music
 
-import midi.Sequencer
+import midi.{OutDevices, Sequencer}
 import models.Primitives._
 import models.ControlSignals._
 import models.Scales._
-import Generators.RhythmGenerators._
+import generators.RhythmGenerators._
 import Transformers.MelodyTransformers._
 import Transformers.RhythmTransformers._
 
@@ -24,7 +24,7 @@ object Scratch extends App {
 
 //  val arrangement: ParallelBarSequences = List(BarSequence(List(bar)))
   val arrangement: ParallelBarSequences = List(BarSequence(List(bar)), BarSequence(List(bassBar)))
-  Sequencer(arrangement, 200, "VirMIDI [hw:3,0,0]")
+  Sequencer(arrangement, 200, OutDevices.LOOP_MIDI_PORT)
   //Sequencer(arrangement, 100)
 
   //todo: melody rhythm modulations - rotate by whole steps, shift over the beat

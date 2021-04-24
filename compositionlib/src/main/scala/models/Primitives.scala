@@ -1,5 +1,7 @@
 package models
 
+import models.Primitives.MidiPitch
+
 import javax.sound.midi.ShortMessage
 import models.Scales.majorScalePattern
 
@@ -171,10 +173,7 @@ object Primitives {
   object Bar {
     //assumes number of non-rests are equal to number of pitches
 
-
-    def apply(phrase: Phrase, rhythm: Rhythm, velocities: Option[Seq[Velocity]]): Bar = {
-
-      val pitches = phrase.degreeSequence.map(d => MidiPitch(phrase.scale, d))
+    def apply(pitches: List[MidiPitch], rhythm: Rhythm, velocities: Option[Seq[Velocity]]): Bar = {
 
       if (velocities.isDefined) {
         assert(pitches.length == velocities.get.length)
@@ -196,6 +195,18 @@ object Primitives {
       val notes = rests.zipAll(onNotes, Rest(0), Rest(0)).flatMap(pair => List(pair._1, pair._2))
 
       Bar(notes :: Nil)
+    }
+
+    def apply(drum: DrumNames.Value, rhythm: Rhythm, velocity: Velocity): Bar = {
+      val midiPitch: MidiPitch = DrumMap.fPC.get(drum).get
+      val pitches = List.fill(rhythm.hitDurations.length)(midiPitch)
+      val velocities = List.fill(rhythm.hitDurations.length)(velocity)
+      apply(pitches, rhythm, Some(velocities))
+    }
+
+    def apply(phrase: Phrase, rhythm: Rhythm, velocities: Option[Seq[Velocity]]): Bar = {
+      val pitches = phrase.degreeSequence.map(d => MidiPitch(phrase.scale, d))
+      apply(pitches, rhythm, velocities)
     }
 
     def apply(phrase: Phrase, rhythm: Rhythm, velocity: Velocity): Bar = {
