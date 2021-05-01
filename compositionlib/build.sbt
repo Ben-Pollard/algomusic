@@ -5,11 +5,12 @@
 //libraryDependencies += "com.googlecode.soundlibs" % "tritonus-all" % "0.3.7.2"
 
 ThisBuild / scalaVersion := "2.12.7"
-ThisBuild / organization := "com.example"
+ThisBuild / fork := true
 
 lazy val hello = (project in file("."))
   .settings(
     name := "Hello",
+    fork := true,
     libraryDependencies += "com.googlecode.soundlibs" % "tritonus-all" % "0.3.7.2"
   )
 

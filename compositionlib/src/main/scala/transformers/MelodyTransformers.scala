@@ -1,23 +1,24 @@
-package Transformers
+package transformers
 
-import models.Primitives.{Bar, Phrase, PolyphonicPhrase}
+import models.NoteSequences
+import models.NoteSequences.{PolyphonicScalePhrase, ScalePhrase}
 
 object MelodyTransformers {
 
-  def transpose(polyphonicPhrase: PolyphonicPhrase, transposeDegrees: Int): PolyphonicPhrase = {
-    polyphonicPhrase.map(mono => {
-      Phrase(mono.degreeSequence.map(d => d + transposeDegrees), mono.scale)
-    })
+  def transpose(polyphonicScalePhrase: PolyphonicScalePhrase, transposeDegrees: Int): PolyphonicScalePhrase = {
+    polyphonicScalePhrase.copy(phrases = polyphonicScalePhrase.phrases.map(mono => {
+      ScalePhrase(mono.degreeSequence.map(d => d + transposeDegrees), mono.scale)
+    }))
   }
 
-  def transpose(phrase: Phrase, transposeDegrees: Int): Phrase = {
-    transpose(phrase :: Nil, transposeDegrees).head
+  def transpose(scalePhrase: ScalePhrase, transposeDegrees: Int): ScalePhrase = {
+    transpose(PolyphonicScalePhrase(scalePhrase :: Nil).phrases.head, transposeDegrees)
   }
 
-  def invert(phrase: Phrase): Phrase = {
-    val s = phrase.degreeSequence
+  def invert(scalePhrase: ScalePhrase): ScalePhrase = {
+    val s = scalePhrase.degreeSequence
     val diffs = s.indices.tail.map(i => s(i) - s(i-1))
-    Phrase(diffs.scanLeft(s.head)((a,b) => a-b).toList, phrase.scale)
+    ScalePhrase(diffs.scanLeft(s.head)((a, b) => a-b).toList, scalePhrase.scale)
   }
 
 }

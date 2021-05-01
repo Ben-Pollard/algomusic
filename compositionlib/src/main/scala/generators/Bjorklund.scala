@@ -1,6 +1,7 @@
 package generators
 
 import models.Primitives._
+import models.Rhythm
 
 object RhythmGenerators {
 
@@ -9,6 +10,10 @@ object RhythmGenerators {
   //8,5 = cinquillo
   //4,3 = cumbia
   //16,5 = bossa nova
+  def bjorklund(len: Int, notes: Int, hitDuration: Duration): Rhythm = {
+    bjorklund(len, notes, List.fill(notes)(hitDuration))
+  }
+
   def bjorklund(len: Int, notes: Int, hitDurations: Seq[Duration]): Rhythm = {
 
     val beats = List.fill(notes)(List(1.asInstanceOf[Byte]))
@@ -35,6 +40,7 @@ object RhythmGenerators {
     val beatPattern = euclidean(notes, len % notes, initList).flatten
 
     val hitIndices = beatPattern.zipWithIndex.filter(_._1==1).map(_._2)
+    //a bjorklund rhythm is constructed as having 1 beat with n subdivisions
     Rhythm(len, hitIndices , hitDurations)
 
   }

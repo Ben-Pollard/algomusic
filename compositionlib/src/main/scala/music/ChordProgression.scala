@@ -1,5 +1,0 @@
-package music
-
-class ChordProgression {
-
-}

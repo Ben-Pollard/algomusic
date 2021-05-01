@@ -1,8 +1,9 @@
-package models
+package midi
 
-import models.DrumNames.{HHC, HHO, HHP, KICK, SNARE}
-import models.Primitives.{MidiNote, MidiPitch}
-import models.FLStudioMIDIMap.PitchName
+import midi.FLStudioMIDIMap.PitchName
+import models.DrumNames
+import models.DrumNames._
+import models.Primitives.MidiPitch
 
 object DrumMap {
 
@@ -17,6 +18,6 @@ object DrumMap {
   )
 
   val fPC: Map[DrumNames.Value, MidiPitch] = fPCPitchNames
-    .map{ case (name, pitchname) => (name, FLStudioMIDIMap.midiMap.get(pitchname).get)}
+    .map { case (name, pitchname) => (name, FLStudioMIDIMap.midiMap.get(pitchname).get) }
 
 }

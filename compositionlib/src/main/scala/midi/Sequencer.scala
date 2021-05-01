@@ -1,8 +1,8 @@
 package midi
 
-import javax.sound.midi.{MidiDevice, MidiEvent, MidiSystem, Receiver, Sequence, ShortMessage}
-import models.Primitives.{Bar, BarSequence, Duration, ParallelBarSequences}
+import models.BarSequence
 
+import javax.sound.midi.{MidiDevice, MidiSystem, ShortMessage}
 import scala.collection.parallel.ForkJoinTaskSupport
 import scala.concurrent.forkjoin.ForkJoinPool
 
@@ -55,8 +55,8 @@ object Sequencer {
               //translate note duration to ms
               val onMessage = new ShortMessage()
               val offMessage = new ShortMessage()
-              onMessage.setMessage(noteOn, 1, n.pitch.get, n.velocity) //command, channel, note, velocity
-              offMessage.setMessage(noteOff, 1, n.pitch.get, n.velocity) //command, channel, note, velocity
+              onMessage.setMessage(noteOn, bars.channel-1, n.pitch.get, n.velocity) //command, channel, note, velocity
+              offMessage.setMessage(noteOff, bars.channel-1, n.pitch.get, n.velocity) //command, channel, note, velocity
               (Some(onMessage, offMessage), ms)
             } else (None, ms)
           }

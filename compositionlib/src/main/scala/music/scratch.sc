@@ -1,1 +1,1 @@
-0 to 10 toList
+List(1,2).take(1)
