@@ -1,1 +1,1 @@
-List(1,2).take(1)
+List.fill(2)(3)

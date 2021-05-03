@@ -113,27 +113,31 @@ object DrumPattern extends App {
     }
   }
 
-  //to get motion information we need:
-  // interval builder
-  // direction builder
-  // scale degree builder
+
+
+
+  //Goals for this melody:
+  //construct the phrase from the current outline note and the next outline note
+  //harmonic logic for outline notes - be aware of current note & next note in harmony
+  //pull through the sequencing data
+
+  val scanSeed = BarInfo(nullPolyphonicScalePhraseBarConstructor, nullPolyphonicScalePhraseBarConstructor)
 
   val harmonisedMelody = harmonicPhrases.map(c => {
     //gather information about the bar: start note, movement
-    val transposed = c.copy(scalePhrases = c.scalePhrases.transpose(8))
+    val transposed = c.copy(scalePhrases = c.scalePhrases.transpose(7))
     BarInfo(transposed, transposed)
-  }).scanLeft(BarInfo(nullPolyphonicScalePhraseBarConstructor, nullPolyphonicScalePhraseBarConstructor))((a,b) => {
+  }).scanLeft(scanSeed)((a,b) => {
+    //In this scan we outline the melody
+    val AEmpty = a.oldConstructor.rhythm.beats == 0
     val firstDegreeBOld = b.oldConstructor.scalePhrases.phrases.head.degreeSequence.head
-    val firstDegreeAOld = if (a.oldConstructor.rhythm.beats == 0) firstDegreeBOld else a.oldConstructor.scalePhrases.phrases.head.degreeSequence.head
+    val firstDegreeAOld = if (AEmpty) firstDegreeBOld else a.oldConstructor.scalePhrases.phrases.head.degreeSequence.head
     val firstDegreeBNew = b.newConstructor.scalePhrases.phrases.head.degreeSequence.head
-    val firstDegreeANew = if (a.newConstructor.rhythm.beats == 0) firstDegreeBNew else a.newConstructor.scalePhrases.phrases.head.degreeSequence.head
+    val firstDegreeANew = if (AEmpty) firstDegreeBNew else a.newConstructor.scalePhrases.phrases.head.degreeSequence.head
 
     val direction = Direction(firstDegreeAOld, firstDegreeBOld)
     val motion = Motion(direction.opposite, firstDegreeANew, 1)
 
-    //ok step 1. Let's isolate the first notes
-    // step 2. We need to define their direction
-    // step 3. let's do simple contrary motion by going 1 step in the opposite direction
     val roots = b.oldConstructor.scalePhrases.phrases.take(1)
 
     val newPhrases = roots.map(p => {
@@ -147,7 +151,17 @@ object DrumPattern extends App {
 
     val newConstructor = PolyphonicScalePhraseBarConstructor(PolyphonicScalePhrase(newPhrases), newRhythm, newVelocities)
     BarInfo[PolyphonicScalePhraseBarConstructor](b.oldConstructor, newConstructor)
-  }).tail.map(bi => Bar(bi.newConstructor))
+  }).tail
+    .scanRight(scanSeed)((a,b) => {
+      //in this scan we colour it in
+      val BEmpty = b.oldConstructor.rhythm.beats == 0
+      //we need to get to a barconstructor so we can call the infiller
+      val targetNote = if (BEmpty) 1 else b.newConstructor.roots.scalePhrase.degreeSequence.head //start of next bar - if last bar, 1? idk, we should get this from a reduce or something
+      val newConstructor = a.newConstructor.roots.scalePhraseRunFiller(a.oldConstructor.rhythm, a.oldConstructor.velocities, targetNote).toPoly
+      BarInfo(a.oldConstructor, newConstructor)
+    })
+    .init
+    .map(bi => Bar(bi.newConstructor))
 
 
 
