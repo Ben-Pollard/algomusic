@@ -1,1 +1,1 @@
-List.fill(2)(3)
+List((1,2), (1,1)).sorted

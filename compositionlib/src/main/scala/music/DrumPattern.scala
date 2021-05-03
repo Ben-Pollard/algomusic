@@ -6,7 +6,7 @@ import midi.{OutDevices, Sequencer}
 import models.Bar.ParallelBarSequences
 import models.ControlSignals.midiNoteNames
 import models.DrumNames._
-import models.Interval.Interval
+import models.Interval.{Interval, intervals}
 import models.NullObjects.nullPolyphonicScalePhraseBarConstructor
 import models.Primitives._
 import models.NoteSequences.{PolyphonicScalePhrase, PolyphonicScalePhraseBarConstructor, ScalePhrase}
@@ -65,19 +65,69 @@ object DrumPattern extends App {
   //create a representation of intervals
   //melodic movement in the chord sequence
 
-  val harmonicPhrases: List[PolyphonicScalePhraseBarConstructor] = chordRoots.flatMap(r => List.fill(4)(r)).grouped(5).zipWithIndex.map(r => { //5 notes in rhythm. change chords every 4
-    val pp = chordDegrees.map(d => ScalePhrase(r._1.map(m => m+d), scale))
+
+
+//  val harmonicPhrases: List[PolyphonicScalePhraseBarConstructor] = chordRoots.flatMap(r => List.fill(4)(r)).grouped(5).zipWithIndex.map(r => { //5 notes in rhythm. change chords every 4
+//    val pp = chordDegrees.map(d => ScalePhrase(r._1.map(m => m+d), scale))
+//    val rhythm = {
+//      val rotatedDurations = clave.copy(hitDurations = rotate(List(w,h,q,w,h).map(_*2), r._2+4))
+//      val alternateBarSwing = shift(rotatedDurations, 0, r._2%2)
+//      alternateBarSwing
+//    }
+//    val velocities = rotate(claveVelocities, r._2)//hit a punctuation every 6
+//    val barConstructor = PolyphonicScalePhraseBarConstructor(PolyphonicScalePhrase(pp), rhythm, velocities)
+//    barConstructor
+//  }).toList
+
+  case class SequenceInfo(degree: ScaleDegree, chordNum: Int, barNum: Int)
+  val nullSequenceInfo = List(SequenceInfo(0,0,0))
+  case class BarInfo[A, B](oldConstructor: A, newConstructor: A, sequenceInfo: List[B])
+
+
+  val sequenceIndexes = chordRoots //5 notes in rhythm. change chords every 4
+    .map(r => List.fill(4)(r))
+    .zipWithIndex
+    .flatMap(i => i._1.zip(List.fill(i._1.length)(i._2)))
+    .grouped(5)
+    .zipWithIndex
+    .map(i => i._1.zip(List.fill(i._1.length)(i._2)).map(j => SequenceInfo(j._1._1, j._1._2, j._2)))
+    .toList
+
+  val harmonicPhrasesWithSequenceIndexing = sequenceIndexes.map(s => {
+    val barNum = s.head.barNum
+    val pp = chordDegrees.map(d => ScalePhrase(s.map(i => i.degree + d ), scale))
     val rhythm = {
-      val rotatedDurations = clave.copy(hitDurations = rotate(List(w,h,q,w,h).map(_*2), r._2+4))
-      val alternateBarSwing = shift(rotatedDurations, 0, r._2%2)
+      val rotatedDurations = clave.copy(hitDurations = rotate(List(w,h,q,w,h).map(_*2), barNum + 4))
+      val alternateBarSwing = shift(rotatedDurations, 0, barNum % 2)
       alternateBarSwing
     }
-    val velocities = rotate(claveVelocities, r._2)//hit a punctuation every 6
-    PolyphonicScalePhraseBarConstructor(PolyphonicScalePhrase(pp), rhythm, velocities)
-  }).toList
+    val velocities = rotate(claveVelocities, barNum) //hit a punctuation every 6
+    val barConstructor = PolyphonicScalePhraseBarConstructor(PolyphonicScalePhrase(pp), rhythm, velocities)
+    BarInfo(barConstructor, barConstructor, s)
+  })
+
+  //Let's think about voicing and voice leading
+  //Voicing can be done on a chord
+  //Then voice leading needs to know where the chord changes are and have some lookahead/lookbehind
+  //Once we start changing things, chord change locations might effectively change - let's preserve the original locations
+
+  val revoiced = harmonicPhrasesWithSequenceIndexing.map(p => {
+
+    val scale = p.oldConstructor.scalePhrases.phrases.head.scale
+    val chords = p.oldConstructor.scalePhrases.phrases.map(_.degreeSequence).transpose
+    val reVoicedChords = chords.map(chord => {
+      Chord(chord, scale).voicing(false, true).scaleDegrees
+    })
+
+    val revoicedPhrases = reVoicedChords.transpose.map(c => ScalePhrase(c, scale))
+
+    val newConstructor = p.oldConstructor.copy(scalePhrases = PolyphonicScalePhrase(revoicedPhrases))
+    p.copy(oldConstructor = newConstructor, newConstructor = newConstructor)
+  })
+
+  val piano = revoiced.map{c => Bar(c.oldConstructor)}
 
 
-  val piano = harmonicPhrases.map{c => Bar(c)}
 
 //  val bass = chordRoots.flatMap(r => List.fill(4)(r)).grouped(5).zipWithIndex.map(r => {
 //    val p = ScalePhrase(r._1.map(m => m), scale)
@@ -97,7 +147,7 @@ object DrumPattern extends App {
   //start with a rhythm
   //step 1: contrary motion relative to the bar starts or to the changes?
 
-  case class BarInfo[A](oldConstructor: A, newConstructor: A)
+
 
   //This should become the definition of interval: add tone; work out tones from the scale
   type OverloadedClassIndicator = Byte
@@ -121,12 +171,11 @@ object DrumPattern extends App {
   //harmonic logic for outline notes - be aware of current note & next note in harmony
   //pull through the sequencing data
 
-  val scanSeed = BarInfo(nullPolyphonicScalePhraseBarConstructor, nullPolyphonicScalePhraseBarConstructor)
+  val scanSeed = BarInfo(nullPolyphonicScalePhraseBarConstructor, nullPolyphonicScalePhraseBarConstructor, nullSequenceInfo)
 
-  val harmonisedMelody = harmonicPhrases.map(c => {
-    //gather information about the bar: start note, movement
-    val transposed = c.copy(scalePhrases = c.scalePhrases.transpose(7))
-    BarInfo(transposed, transposed)
+  val harmonisedMelody = revoiced.map(c => {
+    val transposed = c.oldConstructor.copy(scalePhrases = c.oldConstructor.scalePhrases.transpose(7))
+    BarInfo(transposed, transposed, c.sequenceInfo)
   }).scanLeft(scanSeed)((a,b) => {
     //In this scan we outline the melody
     val AEmpty = a.oldConstructor.rhythm.beats == 0
@@ -150,7 +199,7 @@ object DrumPattern extends App {
 
 
     val newConstructor = PolyphonicScalePhraseBarConstructor(PolyphonicScalePhrase(newPhrases), newRhythm, newVelocities)
-    BarInfo[PolyphonicScalePhraseBarConstructor](b.oldConstructor, newConstructor)
+    BarInfo(b.oldConstructor, newConstructor, b.sequenceInfo)
   }).tail
     .scanRight(scanSeed)((a,b) => {
       //in this scan we colour it in
@@ -158,7 +207,7 @@ object DrumPattern extends App {
       //we need to get to a barconstructor so we can call the infiller
       val targetNote = if (BEmpty) 1 else b.newConstructor.roots.scalePhrase.degreeSequence.head //start of next bar - if last bar, 1? idk, we should get this from a reduce or something
       val newConstructor = a.newConstructor.roots.scalePhraseRunFiller(a.oldConstructor.rhythm, a.oldConstructor.velocities, targetNote).toPoly
-      BarInfo(a.oldConstructor, newConstructor)
+      BarInfo(a.oldConstructor, newConstructor, a.sequenceInfo)
     })
     .init
     .map(bi => Bar(bi.newConstructor))
@@ -172,7 +221,7 @@ object DrumPattern extends App {
   val pianoLine: ParallelBarSequences = List(BarSequence(piano, 2))
 //  val bassLine: ParallelBarSequences = List(BarSequence(bass, 3))
   val melodyLine: ParallelBarSequences = List(BarSequence(harmonisedMelody, 5))
-  val arrangement: ParallelBarSequences = repeatArrangement(pianoLine ++ melodyLine, 2)
+  val arrangement: ParallelBarSequences = repeatArrangement(pianoLine, 2)
 
   Sequencer(arrangement, bpm=60, midiDevice=OutDevices.LOOP_MIDI_PORT)
 
