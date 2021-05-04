@@ -1,1 +1,1 @@
-List((1,2), (1,1)).sorted
+List(1,2).scanRight(0)((a,b) => a).init

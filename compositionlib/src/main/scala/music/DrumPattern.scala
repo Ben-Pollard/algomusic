@@ -7,7 +7,7 @@ import models.Bar.ParallelBarSequences
 import models.ControlSignals.midiNoteNames
 import models.DrumNames._
 import models.Interval.{Interval, intervals}
-import models.NullObjects.nullPolyphonicScalePhraseBarConstructor
+import models.NullObjects.{nullChord, nullPolyphonicScalePhraseBarConstructor}
 import models.Primitives._
 import models.NoteSequences.{PolyphonicScalePhrase, PolyphonicScalePhraseBarConstructor, ScalePhrase}
 import models.Scales.modeNumberMap
@@ -106,24 +106,33 @@ object DrumPattern extends App {
     BarInfo(barConstructor, barConstructor, s)
   })
 
-  //Let's think about voicing and voice leading
-  //Voicing can be done on a chord
-  //Then voice leading needs to know where the chord changes are and have some lookahead/lookbehind
+  //VOICE LEADING
+  //Voice leading needs to know where the chord changes are and have some lookahead/lookbehind
   //Once we start changing things, chord change locations might effectively change - let's preserve the original locations
+
+  val scanSeed = BarInfo(nullPolyphonicScalePhraseBarConstructor, nullPolyphonicScalePhraseBarConstructor, nullSequenceInfo)
 
   val revoiced = harmonicPhrasesWithSequenceIndexing.map(p => {
 
     val scale = p.oldConstructor.scalePhrases.phrases.head.scale
     val chords = p.oldConstructor.scalePhrases.phrases.map(_.degreeSequence).transpose
+
     val reVoicedChords = chords.map(chord => {
-      Chord(chord, scale).voicing(false, true).scaleDegrees
+      Chord(chord, scale).voicing(false, true, 4)
     })
 
-    val revoicedPhrases = reVoicedChords.transpose.map(c => ScalePhrase(c, scale))
+    val voiceLeadingChords = reVoicedChords.scanRight(nullChord)((a,b) => {
+      if (b.scaleDegrees.isEmpty) a else a.leading(b)
+    }).init
+
+    val revoicedPhrases = voiceLeadingChords.map(_.scaleDegrees).transpose.map(c => ScalePhrase(c, scale))
 
     val newConstructor = p.oldConstructor.copy(scalePhrases = PolyphonicScalePhrase(revoicedPhrases))
     p.copy(oldConstructor = newConstructor, newConstructor = newConstructor)
   })
+//    .scanLeft(scanSeed)((a,b) => { //between-bar voicings
+//      b.
+//    })
 
   val piano = revoiced.map{c => Bar(c.oldConstructor)}
 
@@ -171,7 +180,7 @@ object DrumPattern extends App {
   //harmonic logic for outline notes - be aware of current note & next note in harmony
   //pull through the sequencing data
 
-  val scanSeed = BarInfo(nullPolyphonicScalePhraseBarConstructor, nullPolyphonicScalePhraseBarConstructor, nullSequenceInfo)
+
 
   val harmonisedMelody = revoiced.map(c => {
     val transposed = c.oldConstructor.copy(scalePhrases = c.oldConstructor.scalePhrases.transpose(7))
@@ -221,7 +230,7 @@ object DrumPattern extends App {
   val pianoLine: ParallelBarSequences = List(BarSequence(piano, 2))
 //  val bassLine: ParallelBarSequences = List(BarSequence(bass, 3))
   val melodyLine: ParallelBarSequences = List(BarSequence(harmonisedMelody, 5))
-  val arrangement: ParallelBarSequences = repeatArrangement(pianoLine, 2)
+  val arrangement: ParallelBarSequences = repeatArrangement(pianoLine ++ melodyLine, 2)
 
   Sequencer(arrangement, bpm=60, midiDevice=OutDevices.LOOP_MIDI_PORT)
 
