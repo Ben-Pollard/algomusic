@@ -12,8 +12,6 @@ case class BarSequence(bars: List[Bar], channel: Int)
 object Bar {
   //assumes number of non-rests are equal to number of pitches
 
-  type ParallelBarSequences = List[BarSequence]
-
   case class Phrase(notes: Seq[Seq[MidiNote]])
   type PolyphonicPhrase = List[Phrase]
 

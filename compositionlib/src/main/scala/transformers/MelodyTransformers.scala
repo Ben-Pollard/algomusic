@@ -1,6 +1,5 @@
 package transformers
 
-import models.NoteSequences
 import models.NoteSequences.{PolyphonicScalePhrase, ScalePhrase}
 
 object MelodyTransformers {

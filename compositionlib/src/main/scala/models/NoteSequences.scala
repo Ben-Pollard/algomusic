@@ -2,6 +2,7 @@ package models
 
 import models.ControlSignals.midiNoteNames
 import models.Interval.intervals
+import models.NullObjects.nullChord
 import models.Primitives.{ScaleDegree, Velocity}
 import models.Scales.modeNumberMap
 
@@ -104,6 +105,23 @@ object NoteSequences {
 
     def roots(): ScalePhraseBarConstructor = {
       ScalePhraseBarConstructor(scalePhrases.phrases.head, rhythm, velocities)
+    }
+
+    def revoice() = {
+      val scale = scalePhrases.phrases.head.scale
+      val chords = scalePhrases.phrases.map(_.degreeSequence).transpose
+
+      val reVoicedChords = chords.map(chord => {
+        Chord(chord, scale).voicing(false, true, 4)
+      })
+
+      val voiceLeadingChords = reVoicedChords.scanRight(nullChord)((a, b) => {
+        if (b.scaleDegrees.isEmpty) a else a.leading(b)
+      }).init
+
+      val revoicedPhrases = voiceLeadingChords.map(_.scaleDegrees).transpose.map(c => ScalePhrase(c, scale))
+
+      this.copy(scalePhrases = PolyphonicScalePhrase(revoicedPhrases))
     }
   }
 

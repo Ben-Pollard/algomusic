@@ -1,12 +1,16 @@
 package models
 
-import models.Primitives.{Duration, RestDuration, RhythmDurations}
+import models.Primitives.{Duration, RestDuration, RhythmDurations, s}
 
 //the job of this class is to carry the note/rest durations for the Midi Sequencer, along with information used by the transformers
 case class Rhythm(beats: Int, subdivisions: Int, hitIndices: Seq[(Int,Int)], hitDurations: Seq[Duration], durations: RhythmDurations) {
 
   def take(n: Int): Rhythm = {
     Rhythm(beats, subdivisions, hitIndices.take(n), hitDurations.take(n))
+  }
+
+  def info() = {
+    println(s"Steps: ${beats}; Subdivisions: ${subdivisions}, Hits: ${hitIndices}")
   }
 
 }

@@ -1,6 +1,6 @@
 package midi
 
-import models.BarSequence
+import models.{Arrangement, BarSequence}
 
 import javax.sound.midi.{MidiDevice, MidiSystem, ShortMessage}
 import scala.collection.parallel.ForkJoinTaskSupport
@@ -17,7 +17,7 @@ object Sequencer {
   type MonophonicSequence = Seq[OnOff]
   type PolyphonicSequence = Seq[MonophonicSequence]
   type SequenceOfSequences = Seq[PolyphonicSequence]
-  type Arrangement = Seq[SequenceOfSequences]
+  type MIDIArrangement = Seq[SequenceOfSequences]
 
   def getDevice(midiDevice: OutDevices.Value): MidiDevice = {
     val midiOutDevices = MidiSystem.getMidiDeviceInfo().toVector.filter(_.getClass.getName == "com.sun.media.sound.MidiOutDeviceProvider$MidiOutDeviceInfo")
@@ -32,7 +32,7 @@ object Sequencer {
 
   }
 
-  def apply(parallelBars: Seq[BarSequence], bpm:Int, midiDevice: OutDevices.Value) = {
+  def apply(arrangement: Arrangement, bpm:Int, midiDevice: OutDevices.Value) = {
 
     //init receiver
     val device = getDevice(midiDevice)
@@ -46,7 +46,7 @@ object Sequencer {
 //    var sequence = new Sequence(Sequence.PPQ, 1, 1) //divisionType, resolution in PPQ (ticks per quarter note), numTracks
 
     //We have 3 nested seqs. Outer=bars, they happen sequentially. Middle=seq of monophonic sequences, they happen concurrently
-    val arrangement: Arrangement = parallelBars.map { bars =>
+    val midiArrangement: MIDIArrangement = arrangement.barSequences.map { bars =>
       bars.bars.map { bar =>
         bar.notes.map { s =>
           val monophonicSequence = s.map { n =>
@@ -95,16 +95,16 @@ object Sequencer {
     }
 
     //Plays the bar sequences in parallel
-    def arrangementPlayer(arrangement: Arrangement): Unit = {
-      val parallelism = arrangement.map(s => s.map(p => p.length).max).max * arrangement.length
-      val pc = arrangement.par
+    def arrangementPlayer(midiArrangement: MIDIArrangement): Unit = {
+      val parallelism = midiArrangement.map(s => s.map(p => p.length).max).max * midiArrangement.length
+      val pc = midiArrangement.par
       pc.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(parallelism))
       pc.map(layer => sequencePlayer(layer))
 
     }
 
 
-    arrangementPlayer(arrangement)
+    arrangementPlayer(midiArrangement)
 
     receiver.close()
     device.close()
