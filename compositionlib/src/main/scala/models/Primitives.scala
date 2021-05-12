@@ -97,11 +97,6 @@ object Primitives {
   }
 
 
-
-
-  type OverloadedClassIndicator = Byte //todo come on..
-
-
 }
 
 

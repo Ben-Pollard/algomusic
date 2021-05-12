@@ -15,8 +15,9 @@ object Meter {
     val subdivDuration = 1.0 / subdivisions
     val maxDuration = durations.filter(_ <= subdivDuration).max
     val hitDurations: Seq[Duration] = hitIndices.map(i => maxDuration)
+    val velocities = List.fill(hitDurations.length)(100)
 
-    Rhythm(beats, subdivisions, hitIndices, hitDurations)
+    Rhythm(beats, subdivisions, hitIndices, hitDurations, velocities)
   }
 
   def onBeats(beats: Int, subdivisions: Int) = {
@@ -27,8 +28,9 @@ object Meter {
     //max duration is 1 beat
     val maxDuration = w
     val hitDurations: Seq[Duration] = hitIndices.map(i => maxDuration)
+    val velocities = List.fill(hitDurations.length)(100)
 
-    Rhythm(beats, subdivisions, hitIndices, hitDurations)
+    Rhythm(beats, subdivisions, hitIndices, hitDurations, velocities)
   }
 
   def theOne(beats: Int, subdivisions: Int) = {
@@ -39,8 +41,9 @@ object Meter {
     //max duration is 1 beat
     val maxDuration = w
     val hitDurations: Seq[Duration] = List(maxDuration)
+    val velocity = List(100)
 
-    Rhythm(beats, subdivisions, hitIndices, hitDurations)
+    Rhythm(beats, subdivisions, hitIndices, hitDurations, velocity)
   }
 
   def beatIndices(beats: Int, subdivisions: Int, indices: List[Int]) = {
@@ -49,6 +52,7 @@ object Meter {
     //max duration is 1 beat
     val maxDuration = w
     val hitDurations: Seq[Duration] = hitIndices.map(i => maxDuration)
-    Rhythm(beats, subdivisions, hitIndices, hitDurations)
+    val velocities = List.fill(hitDurations.length)(100)
+    Rhythm(beats, subdivisions, hitIndices, hitDurations, velocities)
   }
 }

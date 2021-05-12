@@ -4,7 +4,6 @@ import models.NoteSequences.{PolyphonicScalePhrase, PolyphonicScalePhraseBarCons
 import models.Primitives._
 import models._
 import music.project1.Runner.{BarInfo, Project1SharedData, scanSeed}
-import transformers.RhythmTransformers.shift
 import transformers.SequenceTransformers.rotate
 
 object Harmony {
@@ -17,11 +16,10 @@ object Harmony {
       val pp = sd.chordDegrees.map(d => ScalePhrase(s.map(i => i.degree + d), sd.scale))
       val rhythm = {
         val rotatedDurations = sd.clave.copy(hitDurations = rotate(List(w, h, q, w, h).map(_ * 2), barNum + 4))
-        val alternateBarSwing = shift(rotatedDurations, 0, barNum % 2)
+        val alternateBarSwing = rotatedDurations.rotate(0, barNum % 2)
         alternateBarSwing
-      }
-      val velocities = rotate(sd.claveVelocities, barNum) //hit a punctuation every 6
-      val barConstructor = PolyphonicScalePhraseBarConstructor(PolyphonicScalePhrase(pp), rhythm, velocities)
+      }.rotateVelocities(barNum) //hit a punctuation every 6
+      val barConstructor = PolyphonicScalePhraseBarConstructor(PolyphonicScalePhrase(pp), rhythm)
       BarInfo(barConstructor, barConstructor, s)
     })
 
@@ -66,20 +64,19 @@ object Harmony {
       val firstDegreeANew = if (AEmpty) firstDegreeBNew else a.newConstructor.scalePhrases.phrases.head.degreeSequence.head
 
       val direction = Direction(firstDegreeAOld, firstDegreeBOld)
-      val motion = Motion(direction.opposite, firstDegreeANew, 1)
+      val motion = NoteFinder.stepDegrees(direction.opposite, firstDegreeANew, 1)
 
       val roots = b.oldConstructor.scalePhrases.phrases.take(1)
 
       val newPhrases = roots.map(p => {
-        val degreeSequence = List(motion.degreeB)
+        val degreeSequence = List(motion)
         p.copy(degreeSequence = degreeSequence)
       })
 
       val newRhythm = b.oldConstructor.rhythm.take(1)
-      val newVelocities = b.oldConstructor.velocities.take(1)
 
 
-      val newConstructor = PolyphonicScalePhraseBarConstructor(PolyphonicScalePhrase(newPhrases), newRhythm, newVelocities)
+      val newConstructor = PolyphonicScalePhraseBarConstructor(PolyphonicScalePhrase(newPhrases), newRhythm)
       BarInfo(b.oldConstructor, newConstructor, b.sequenceInfo)
     }).tail
       .scanRight(scanSeed)((a, b) => {
@@ -87,7 +84,7 @@ object Harmony {
         val BEmpty = b.oldConstructor.rhythm.beats == 0
         //we need to get to a barconstructor so we can call the infiller
         val targetNote = if (BEmpty) 1 else b.newConstructor.roots.scalePhrase.degreeSequence.head //start of next bar - if last bar, 1? idk, we should get this from a reduce or something
-        val newConstructor = a.newConstructor.roots.scalePhraseRunFiller(a.oldConstructor.rhythm, a.oldConstructor.velocities, targetNote).toPoly
+        val newConstructor = a.newConstructor.roots.scalePhraseRunFiller(a.oldConstructor.rhythm, targetNote).toPoly
         BarInfo(a.oldConstructor, newConstructor, a.sequenceInfo)
       })
       .init

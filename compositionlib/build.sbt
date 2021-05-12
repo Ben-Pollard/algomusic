@@ -11,7 +11,10 @@ lazy val hello = (project in file("."))
   .settings(
     name := "Hello",
     fork := true,
-    libraryDependencies += "com.googlecode.soundlibs" % "tritonus-all" % "0.3.7.2"
+    libraryDependencies ++= Seq(
+      "com.googlecode.soundlibs" % "tritonus-all" % "0.3.7.2",
+      "org.hipparchus" % "hipparchus-optim" % "1.8"
+    )
   )
 
 //resolvers ++= Seq(

@@ -1,1 +1,3 @@
-List(1,2).scanRight(0)((a,b) => a).init
+import util.Util.possibleTimeSigs
+
+possibleTimeSigs(24)

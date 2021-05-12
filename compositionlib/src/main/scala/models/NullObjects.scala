@@ -12,7 +12,7 @@ object NullObjects {
 
   val nullRhythm = Rhythm(0, 0, Seq(), Seq(), Seq())
 
-  val nullPolyphonicScalePhraseBarConstructor = PolyphonicScalePhraseBarConstructor(PolyphonicScalePhrase(List(nullScalePhrase)), nullRhythm, Seq())
+  val nullPolyphonicScalePhraseBarConstructor = PolyphonicScalePhraseBarConstructor(PolyphonicScalePhrase(List(nullScalePhrase)), nullRhythm)
 
   val nullChord = Chord(List(), CMaj)
 }

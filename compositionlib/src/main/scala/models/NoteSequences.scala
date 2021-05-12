@@ -1,10 +1,8 @@
 package models
 
-import models.ControlSignals.midiNoteNames
 import models.Interval.intervals
 import models.NullObjects.nullChord
 import models.Primitives.{ScaleDegree, Velocity}
-import models.Scales.modeNumberMap
 
 object NoteSequences {
 
@@ -24,14 +22,14 @@ object NoteSequences {
 
 
   //BAR CONSTRUCTORS
-  case class ScalePhraseBarConstructor(scalePhrase: ScalePhrase, rhythm: Rhythm, velocities: Seq[Velocity]) {
+  case class ScalePhraseBarConstructor(scalePhrase: ScalePhrase, rhythm: Rhythm) {
 
     def toPoly(): PolyphonicScalePhraseBarConstructor = {
-      PolyphonicScalePhraseBarConstructor(PolyphonicScalePhrase(List(scalePhrase)), rhythm, velocities)
+      PolyphonicScalePhraseBarConstructor(PolyphonicScalePhrase(List(scalePhrase)), rhythm)
     }
 
     //create a scale phrase from an existing fragment
-    def scalePhraseRunFiller(newRhythm: Rhythm, newVelocities: Seq[Velocity], nextDegree: ScaleDegree): ScalePhraseBarConstructor = {
+    def scalePhraseRunFiller(newRhythm: Rhythm, nextDegree: ScaleDegree): ScalePhraseBarConstructor = {
       //Things to think about with a melody:
       // Interval wrt to harmonic root & previous note
       // Motion wrt harmonic root & previous note
@@ -43,8 +41,6 @@ object NoteSequences {
       assert(rhythm.hitIndices.toSet.subsetOf(newRhythm.hitIndices.toSet))
       val extantContent = rhythm.hitIndices.zip(scalePhrase.degreeSequence).toMap
 
-      scalePhrase.degreeSequence.head
-      nextDegree
       val partialSequence = newRhythm.hitIndices.map(i => extantContent.get(i))
       val numStepsToFill = partialSequence.count(_.isEmpty)
 
@@ -93,18 +89,17 @@ object NoteSequences {
       //create a sequence of the correct length from the set and place them in some order
 
 
-      assert(newDegrees.length == newVelocities.length)
 //      val newDegrees = newRhythm.hitIndices.map(i => extantContent.getOrElse(i, nextDegree)).toList //just infills with the next note
-      ScalePhraseBarConstructor(ScalePhrase(newDegrees.toList, scalePhrase.scale), newRhythm, newVelocities)
+      ScalePhraseBarConstructor(ScalePhrase(newDegrees.toList, scalePhrase.scale), newRhythm)
     }
 
   }
 
 
-  case class PolyphonicScalePhraseBarConstructor(scalePhrases: PolyphonicScalePhrase, rhythm: Rhythm, velocities: Seq[Velocity]) {
+  case class PolyphonicScalePhraseBarConstructor(scalePhrases: PolyphonicScalePhrase, rhythm: Rhythm) {
 
     def roots(): ScalePhraseBarConstructor = {
-      ScalePhraseBarConstructor(scalePhrases.phrases.head, rhythm, velocities)
+      ScalePhraseBarConstructor(scalePhrases.phrases.head, rhythm)
     }
 
     def revoice() = {

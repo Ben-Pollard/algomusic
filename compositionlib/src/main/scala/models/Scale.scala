@@ -4,7 +4,7 @@ import models.Primitives.{MidiPitch, Octave, ScaleDegree, Tone, midiRange}
 import models.Scales.majorScalePattern
 
 //SCALE
-case class Scale(pitches: Seq[MidiPitch], root: MidiPitch, degreeMap: Map[ScaleDegree, MidiPitch]) {
+case class Scale(pitches: Seq[MidiPitch], root: MidiPitch, degreeMap: Map[ScaleDegree, MidiPitch], pattern: Seq[Tone]) {
 
   def getDegreePitch(d: Int) = {
     degreeMap.get(d).get
@@ -37,6 +37,6 @@ object Scale {
 
     val pitches = degreeMap.values.toList.sorted
 
-    new Scale(pitches, root, degreeMap)
+    new Scale(pitches, root, degreeMap, pattern)
   }
 }

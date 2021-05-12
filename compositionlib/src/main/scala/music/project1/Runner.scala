@@ -13,10 +13,9 @@ object Runner extends App {
 
   case class SequenceInfo(degree: ScaleDegree, chordNum: Int, barNum: Int)
   case class BarInfo[A, B](oldConstructor: A, newConstructor: A, sequenceInfo: List[B])
-  case class Project1SharedData(clave: Rhythm, claveVelocities: List[Velocity], scale: Scale, chordRoots: List[Int], chordDegrees: List[Int], sequenceIndices: List[List[SequenceInfo]])
+  case class Project1SharedData(clave: Rhythm, scale: Scale, chordRoots: List[Int], chordDegrees: List[Int], sequenceIndices: List[List[SequenceInfo]])
 
-  val clave = steps2Subdivisions(bjorklund(16, 5, hitDuration = q), 4)
-  val claveVelocities = List(100, 75, 65, 90, 75)
+  val clave = steps2Subdivisions(bjorklund(16, 5, hitDuration = q, List(100, 75, 65, 90, 75)), 4)
   clave.info()
 
   var scale = Scale(modeNumberMap.get(3).get, midiNoteNames.get("D").get)
@@ -36,9 +35,9 @@ object Runner extends App {
     .map(i => i._1.zip(List.fill(i._1.length)(i._2)).map(j => SequenceInfo(j._1._1, j._1._2, j._2)))
     .toList
 
-  val sd = Project1SharedData(clave, claveVelocities, scale, chordRoots, chordDegrees, sequenceIndices)
+  val sd = Project1SharedData(clave, scale, chordRoots, chordDegrees, sequenceIndices)
 
 //  Sequencer(DrumPattern(sd) ++ Harmony(sd), bpm = 60, midiDevice = OutDevices.LOOP_MIDI_PORT)
-  Sequencer(CounterPoint(sd), bpm = 60, midiDevice = OutDevices.LOOP_MIDI_PORT)
+  Sequencer(DrumPattern(sd), bpm = 60, midiDevice = OutDevices.LOOP_MIDI_PORT)
 
 }

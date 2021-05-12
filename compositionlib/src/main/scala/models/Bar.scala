@@ -1,7 +1,7 @@
 package models
 import midi.DrumMap
-import models.Primitives.{MidiNote, MidiPitch, Rest, Velocity}
 import models.NoteSequences.{PolyphonicScalePhrase, PolyphonicScalePhraseBarConstructor, ScalePhrase, ScalePhraseBarConstructor}
+import models.Primitives.{MidiNote, MidiPitch, Rest}
 
 //A bar returns a sequence of sequences of notes, to be played in parallel
 //Construct with one rhythm for chords, or multiple rhythms for more complex harmony
@@ -15,22 +15,12 @@ object Bar {
   case class Phrase(notes: Seq[Seq[MidiNote]])
   type PolyphonicPhrase = List[Phrase]
 
-  def apply(pitches: List[MidiPitch], rhythm: Rhythm, velocities: Option[Seq[Velocity]]): Bar = {
+  def apply(pitches: List[MidiPitch], rhythm: Rhythm): Bar = {
 
-    if (velocities.isDefined) {
-      assert(pitches.length == velocities.get.length)
-    }
+    assert(pitches.length == rhythm.velocities.length)
     assert(rhythm.durations.filter(_.isLeft).length == pitches.length)
 
-    val onNotes = if (!velocities.isDefined) {
-      pitches zip rhythm.durations.filter(_.isLeft) map { n =>
-        MidiNote(Some(n._1), n._2.left.get)
-      }
-    } else {
-      pitches zip rhythm.durations.filter(_.isLeft) zip velocities.get map { n =>
-        MidiNote(Some(n._1._1), n._1._2.left.get, n._2)
-      }
-    }
+    val onNotes = pitches zip rhythm.durations.filter(_.isLeft) map { n => MidiNote(Some(n._1), n._2.left.get) }
 
     val rests = rhythm.durations.filter(_.isRight).map(r => Rest(r.right.get))
 
@@ -39,45 +29,32 @@ object Bar {
     Bar(notes :: Nil)
   }
 
-  def apply(drum: DrumNames.Value, rhythm: Rhythm, velocity: Velocity): Bar = {
+  def apply(drum: DrumNames.Value, rhythm: Rhythm): Bar = {
     val midiPitch: MidiPitch = DrumMap.fPC.get(drum).get
     val pitches = List.fill(rhythm.hitDurations.length)(midiPitch)
-    val velocities = List.fill(rhythm.hitDurations.length)(velocity)
-    apply(pitches, rhythm, Some(velocities))
+    apply(pitches, rhythm)
   }
 
-  def apply(drum: DrumNames.Value, rhythm: Rhythm, velocities: Seq[Velocity]): Bar = {
-    assert(rhythm.hitIndices.length == velocities.length)
-    val midiPitch: MidiPitch = DrumMap.fPC.get(drum).get
-    val pitches = List.fill(rhythm.hitDurations.length)(midiPitch)
-    apply(pitches, rhythm, Some(velocities))
-  }
-
-  def apply(scalePhrase: ScalePhrase, rhythm: Rhythm, velocities: Option[Seq[Velocity]]): Bar = {
+  def apply(scalePhrase: ScalePhrase, rhythm: Rhythm): Bar = {
     val pitches = scalePhrase.degreeSequence.map(d => MidiPitch(scalePhrase.scale, d))
-    apply(pitches, rhythm, velocities)
+    apply(pitches, rhythm)
   }
 
   def apply(constructor: ScalePhraseBarConstructor): Bar = {
-    apply(constructor.scalePhrase, constructor.rhythm, Some(constructor.velocities))
-  }
-
-  def apply(scalePhrase: ScalePhrase, rhythm: Rhythm, velocity: Velocity): Bar = {
-    val velocities = Seq.fill(scalePhrase.degreeSequence.length)(velocity)
-    apply(scalePhrase, rhythm, Some(velocities))
+    apply(constructor.scalePhrase, constructor.rhythm)
   }
 
   def apply(constructor: PolyphonicScalePhraseBarConstructor): Bar = {
     Bar(constructor.scalePhrases.phrases.map{ m =>
       val mono: ScalePhrase = m
-      apply(mono, constructor.rhythm, Some(constructor.velocities))
+      apply(mono, constructor.rhythm)
     }.flatMap(n => n.notes))
   }
 
   def apply(scalePhrase: PolyphonicScalePhrase, rhythm: Rhythm): Bar = {
     Bar(scalePhrase.phrases.map{ m =>
       val mono: ScalePhrase = m
-      apply(mono, rhythm, None)
+      apply(mono, rhythm)
     }.flatMap(n => n.notes))
   }
 
