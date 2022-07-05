@@ -14,6 +14,18 @@ object RhythmGenerators {
     bjorklund(len, notes, List.fill(notes)(hitDuration), velocities)
   }
 
+  def bjorklund(steps: Int, hits: Int, velocities: Seq[Velocity]): Rhythm = {
+    bjorklund(steps, hits, List.fill(hits)(q), velocities)
+  }
+
+  def bjorklund(steps: Int, hits: Int): Rhythm = {
+    bjorklund(steps, hits, List.fill(hits)(q), List.fill(hits)(100))
+  }
+
+  def bjorklund(steps: Int, hits: Int, hitDuration: Duration): Rhythm = {
+    bjorklund(steps, hits, List.fill(hits)(hitDuration), List.fill(hits)(100))
+  }
+
   def bjorklund(len: Int, notes: Int, hitDurations: Seq[Duration], velocities: Seq[Velocity]): Rhythm = {
 
     val beats = List.fill(notes)(List(1.asInstanceOf[Byte]))
@@ -56,8 +68,6 @@ object RhythmGenerators {
 
   }
 
-  def bjorklund(steps: Int, hits: Int, velocities: Seq[Velocity]): Rhythm = {
-    bjorklund(steps, hits, List.fill(hits)(q), velocities)
-  }
+
 
 }

@@ -24,7 +24,7 @@ object Runner extends App {
   val chordDegrees = List(1, 3, 5).map(_ - 1)
 
   val nullSequenceInfo = List(SequenceInfo(0, 0, 0))
-  val scanSeed = BarInfo(nullPolyphonicScalePhraseBarConstructor, nullPolyphonicScalePhraseBarConstructor, nullSequenceInfo)
+  val scanSeed = BarInfo(nullPolyphonicScalePhraseBarConstructor(0), nullPolyphonicScalePhraseBarConstructor(0), nullSequenceInfo)
 
   val sequenceIndices = chordRoots //5 notes in rhythm. change chords every 4
     .map(r => List.fill(4)(r))
@@ -38,6 +38,6 @@ object Runner extends App {
   val sd = Project1SharedData(clave, scale, chordRoots, chordDegrees, sequenceIndices)
 
 //  Sequencer(DrumPattern(sd) ++ Harmony(sd), bpm = 60, midiDevice = OutDevices.LOOP_MIDI_PORT)
-  Sequencer(DrumPattern(sd), bpm = 60, midiDevice = OutDevices.LOOP_MIDI_PORT)
+  Sequencer(DrumPattern(sd) ++ CounterPoint(sd), bpm = 60, midiDevice = OutDevices.LOOP_MIDI_PORT)
 
 }

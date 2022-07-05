@@ -42,15 +42,15 @@ object DrumPattern {
 //    val hho1 = Bar(HHO, shift(beats, 0,2), rotate(beatStrengths,2))
 //    val hho = List.fill(1)(hho1)
 //
-//    val hhp1 = Bar(HHP, shift(clave,2,0), claveVelocities)
-//    val hhp = List.fill(1)(hhp1)
+    val hhp1 = Bar(HHP, clave.rotate(2,0))
+    val hhp = List.fill(1)(hhp1)
 //
 
     val sn1 = Bar(SNARE, _3)
     val sn = List.fill(2)(sn1)
 
 
-    val drumLine = List(BarSequence(kick,1), BarSequence(sn,1))
+    val drumLine = List(BarSequence(kick,1), BarSequence(sn,1), BarSequence(hhp,1))
     val arrangement = Arrangement(drumLine).repeat(1)
     arrangement
   }

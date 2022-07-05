@@ -2,6 +2,9 @@ package models
 
 object Primitives {
 
+  type MidiCCValue = Int
+  type MidiCCNum = Int
+
   type Velocity = Int
   object Velocities {
     def apply(velocities: Seq[Int]):Seq[Velocity] = {
@@ -41,20 +44,22 @@ object Primitives {
 
   type RhythmDurations = Seq[Either[Duration, RestDuration]]
 
-
-  //NOTE
-  case class MidiNote(pitch: Option[MidiPitch], duration:Duration, velocity: Velocity)
-
-  object MidiNote {
-    val v: Byte = 64
-    def apply(pitch: Option[MidiPitch], duration:Duration = q, velocity: Velocity = v) = {
-      new MidiNote(pitch, duration, velocity)
-    }
+  trait MidiMessageWithDuration {
+    val duration: Duration
   }
 
-  object Rest {
+  case class MidiCC(duration: Duration, number: MidiCCNum, value: Option[MidiCCValue]) extends MidiMessageWithDuration
+  //NOTE
+  case class MidiNote(pitch: Option[MidiPitch], duration: Duration, velocity: Velocity) extends MidiMessageWithDuration
+
+  object NoteRest {
     val v: Byte = 64
-    def apply(duration: Duration) = new MidiNote(None, duration, v)
+    def apply(duration: Duration) = MidiNote(None, duration, v)
+  }
+
+  object CCRest {
+    val n: Byte = 0
+    def apply(duration: Duration) = MidiCC(duration, n, None)
   }
 
 
@@ -64,6 +69,7 @@ object Primitives {
       scale.getDegreePitch(degree)
     }
   }
+
 
 //  object Direction extends Enumeration {
 //    type Direction

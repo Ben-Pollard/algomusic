@@ -29,7 +29,7 @@ object RhythmTransformers {
     //move every other hit forward
     val newSubdivisions = rhythm.subdivisions * subdivisionMultiple
     val newSteps = rhythm.beats * newSubdivisions
-    val addedSteps = addSubdivisions(rhythm, newSubdivisions)
+    val addedSteps = rhythm.addSubdivisions(newSubdivisions)
     val swungIndices = subIdx2Tuple(idxTuple2SubIdx(addedSteps.hitIndices, newSubdivisions).map(i => (if ((i / subdivisionMultiple) % 2==0) i else i+1) % newSteps), newSubdivisions)
     Rhythm(rhythm.beats, newSubdivisions, swungIndices, rhythm.hitDurations, rhythm.velocities)
   }
@@ -69,12 +69,12 @@ object RhythmTransformers {
     Rhythm(newBeats, newSubdivisions, newIndices, rhythm.hitDurations, rhythm.velocities)
   }
 
-  def addSubdivisions(rhythm: Rhythm, newSubdivisions: Int) = {
-    val newStepCount = newSubdivisions * rhythm.beats
-    assert(newStepCount % (rhythm.beats * rhythm.subdivisions) == 0)
-    val flattenedIndices = idxTuple2SubIdx(rhythm.hitIndices, rhythm.subdivisions)
-    val newIndices = subIdx2Tuple(flattenedIndices.map(i => i * newSubdivisions / rhythm.subdivisions), newSubdivisions)
-    Rhythm(rhythm.beats, newSubdivisions, newIndices, rhythm.hitDurations, rhythm.velocities)
-  }
+//  def addSubdivisions(rhythm: Rhythm, newSubdivisions: Int) = {
+//    val newStepCount = newSubdivisions * rhythm.beats
+//    assert(newStepCount % (rhythm.beats * rhythm.subdivisions) == 0)
+//    val flattenedIndices = idxTuple2SubIdx(rhythm.hitIndices, rhythm.subdivisions)
+//    val newIndices = subIdx2Tuple(flattenedIndices.map(i => i * newSubdivisions / rhythm.subdivisions), newSubdivisions)
+//    Rhythm(rhythm.beats, newSubdivisions, newIndices, rhythm.hitDurations, rhythm.velocities)
+//  }
 
 }

@@ -23,14 +23,14 @@ object Scale {
     val degreeMap: Map[ScaleDegree, MidiPitch] = Seq.fill(10)(pattern.scanLeft(0)(_+_).dropRight(1).map(_+root))
       .map(_.zipWithIndex).zipWithIndex
       .flatMap(i => i._1.map(j => (j._1 + 12*(i._2-5), j._2 + 1 + 7*(i._2-5))))
-      .map(_.swap)
+      .map(x => (x._2, x._1.asInstanceOf[MidiPitch]))
       .filter(x => x._2>0 & x._2<=midiRange.max)
       .toMap
 
     val degreeOctaveMap: Map[(ScaleDegree, Octave), MidiPitch] = Seq.fill(10)(majorScalePattern.scanLeft(0)(_+_).dropRight(1).map(_+root))
       .map(_.zipWithIndex).zipWithIndex
       .flatMap(i => i._1.map(j => (j._1 + 12*(i._2-5), (j._2 + 1, (i._2-5)))))
-      .map(_.swap)
+      .map(x => (x._2, x._1.asInstanceOf[MidiPitch]))
       .filter(x => x._2>0 & x._2<=midiRange.max)
       .toMap
 

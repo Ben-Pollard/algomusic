@@ -1,5 +1,6 @@
 package midi
 
+import models.Primitives.{MidiCC, MidiNote}
 import models.{Arrangement, BarSequence}
 
 import javax.sound.midi.{MidiDevice, MidiSystem, ShortMessage}
@@ -12,9 +13,11 @@ object Sequencer {
   type Command = java.lang.Integer
   val noteOn: Command = 144
   val noteOff: Command = 128
+  val controlChange: Command = 176
 
-  type OnOff = (Option[(ShortMessage, ShortMessage)], Long)
-  type MonophonicSequence = Seq[OnOff]
+
+  type MessagePair = (Option[(ShortMessage, ShortMessage)], Long)
+  type MonophonicSequence = Seq[MessagePair]
   type PolyphonicSequence = Seq[MonophonicSequence]
   type SequenceOfSequences = Seq[PolyphonicSequence]
   type MIDIArrangement = Seq[SequenceOfSequences]
@@ -48,17 +51,36 @@ object Sequencer {
     //We have 3 nested seqs. Outer=bars, they happen sequentially. Middle=seq of monophonic sequences, they happen concurrently
     val midiArrangement: MIDIArrangement = arrangement.barSequences.map { bars =>
       bars.bars.map { bar =>
-        bar.notes.map { s =>
-          val monophonicSequence = s.map { n =>
-            val ms: Long = (n.duration * 60.0 * 1000.0 / bpm.toDouble).toLong
-            if (n.pitch.isDefined) {
-              //translate note duration to ms
-              val onMessage = new ShortMessage()
-              val offMessage = new ShortMessage()
-              onMessage.setMessage(noteOn, bars.channel-1, n.pitch.get, n.velocity) //command, channel, note, velocity
-              offMessage.setMessage(noteOff, bars.channel-1, n.pitch.get, n.velocity) //command, channel, note, velocity
-              (Some(onMessage, offMessage), ms)
-            } else (None, ms)
+        bar.messages.map { s =>
+          val monophonicSequence = s.map { m =>
+            val ms: Long = (m.duration * 60.0 * 1000.0 / (bpm.toDouble)).toLong
+            m match {
+
+              case MidiNote(pitch, duration, velocity) => {
+                if (pitch.isDefined) {
+                  //translate note duration to ms
+                  val onMessage = new ShortMessage()
+                  val offMessage = new ShortMessage()
+                  onMessage.setMessage(noteOn, bars.channel-1, pitch.get, velocity) //command, channel, note, velocity
+                  offMessage.setMessage(noteOff, bars.channel-1, pitch.get, velocity) //command, channel, note, velocity
+                  (Some(onMessage, offMessage), ms)
+                } else {
+                  (None, ms)
+                }
+              }
+
+              case MidiCC(duration, number, value) => {
+                if (value.isDefined) {
+                  val message = new ShortMessage()
+                  message.setMessage(controlChange, bars.channel-1, number, value.get)
+                  (Some(message, message), ms) //todo no need to send the message twice - change the monophonic sequencer
+                } else {
+                  (None, ms)
+                }
+
+              }
+            }
+
           }
           monophonicSequence
         }

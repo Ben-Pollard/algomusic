@@ -6,13 +6,13 @@ import models.Scales.CMaj
 
 object NullObjects {
   //Use these for seeding a fold/scan/reduce
-  val nullBar = Bar(notes = Seq(Seq()))
+  val nullBar = Bar(messages = Seq(Seq()))
 
   val nullScalePhrase = ScalePhrase(List(), CMaj)
 
-  val nullRhythm = Rhythm(0, 0, Seq(), Seq(), Seq())
+  def nullRhythm(totalSubdivs: Int) = Rhythm(1, totalSubdivs, Seq(), Seq(), Seq())
 
-  val nullPolyphonicScalePhraseBarConstructor = PolyphonicScalePhraseBarConstructor(PolyphonicScalePhrase(List(nullScalePhrase)), nullRhythm)
+  def nullPolyphonicScalePhraseBarConstructor(totalSubdivs: Int) = PolyphonicScalePhraseBarConstructor(PolyphonicScalePhrase(List(nullScalePhrase)), nullRhythm(totalSubdivs))
 
   val nullChord = Chord(List(), CMaj)
 }

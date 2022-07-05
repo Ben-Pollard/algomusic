@@ -1,10 +1,28 @@
 package models
 
 import models.Primitives.{Duration, RestDuration, RhythmDurations, Velocity}
+import transformers.RhythmTransformers.{idxTuple2SubIdx, subIdx2Tuple}
 import transformers.SequenceTransformers
 
 //the job of this class is to carry the note/rest durations for the Midi Sequencer, along with information used by the transformers
 case class Rhythm(beats: Int, subdivisions: Int, hitIndices: Seq[(Int,Int)], hitDurations: Seq[Duration], durations: RhythmDurations, velocities: Seq[Velocity]) {
+
+  def setVelocities(newVelocities: Seq[Velocity]): Rhythm = {
+    this.copy(velocities = newVelocities)
+  }
+
+  def setDurations(newDurations: Seq[Duration]): Rhythm = {
+    Rhythm(beats, subdivisions, hitIndices, newDurations, velocities)
+  }
+
+  def dynamics(min: Velocity, max: Velocity): Rhythm = {
+    val inputRange: Float = velocities.max - velocities.min
+    val outputRange: Velocity = max - min
+    this.copy(velocities = velocities.map(v => {
+      val pct = (v - velocities.min) / inputRange
+      ((pct * outputRange) + min).round
+    }))
+  }
 
   def take(n: Int): Rhythm = {
     Rhythm(beats, subdivisions, hitIndices.take(n), hitDurations.take(n), velocities.take(n))
@@ -71,6 +89,14 @@ case class Rhythm(beats: Int, subdivisions: Int, hitIndices: Seq[(Int,Int)], hit
     Rhythm(newBeats, newSubdivisions, newIndices, hitDurations, velocities)
   }
 
+  def addSubdivisions(newSubdivisions: Int) = {
+    val newStepCount = newSubdivisions * beats
+    assert(newStepCount % (beats * subdivisions) == 0)
+    val flattenedIndices = idxTuple2SubIdx(hitIndices, subdivisions)
+    val newIndices = subIdx2Tuple(flattenedIndices.map(i => i * newSubdivisions / subdivisions), newSubdivisions)
+    this.copy(subdivisions = newSubdivisions, hitIndices = newIndices)
+  }
+
   def rotate(wholeSteps: Int): Rhythm = {
     rotate(wholeSteps, 0)
   }
@@ -99,6 +125,10 @@ object Rhythm {
 
   //base constructor to yield durations with rests
   def apply(beats:Int, subdivisions: Int, hitIndices: Seq[(Int,Int)], hitDurations: Seq[Duration], velocities: Seq[Velocity]): Rhythm = {
+    if (hitIndices.length == 0) {
+      return new Rhythm(beats, subdivisions, hitIndices, hitDurations, Seq(), velocities)
+    }
+
     assert(hitIndices.map(_._1).max <= beats - 1)
     assert(hitIndices.map(_._2).max < subdivisions)
     assert(hitIndices.length == hitDurations.length)
