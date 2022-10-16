@@ -32,8 +32,10 @@ case class Oboes(voices: Int) extends BBCSO {
   val highestNoteName = "F7"
 }
 
-case class Harp(voices: Int) extends BBCSO {
+case class Harp(voices: Int, lowestNoteName: String, highestNoteName: String) extends BBCSO {
   val channel = 7
-  val lowestNoteName = "C3"
-  val highestNoteName = "G9"
+//  val lowestNoteName = "C3"
+//  val highestNoteName = "G9"
+  assert(lowestPitch >= midiMap().get("C3").get)
+  assert(highestPitch <= midiMap().get("G9").get)
 }

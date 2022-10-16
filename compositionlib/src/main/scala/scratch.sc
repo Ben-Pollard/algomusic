@@ -1,1 +1,1 @@
-(0 to 10) toList
+(8 to 3 by -1) toList

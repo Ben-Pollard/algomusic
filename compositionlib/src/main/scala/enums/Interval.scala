@@ -35,7 +35,8 @@ object Interval {
 
   object major_seventh extends Interval(11, 0, "major_seventh", 10)
 
-  val intervals = List(unison, minor_second, major_second, minor_third, major_third, perfect_fourth, augmented_fourth_or_diminished_fifth, perfect_fifth, minor_sixth, major_sixth, minor_seventh, major_seventh)
-    .zipWithIndex.map { case (interval, index) => (index.asInstanceOf[ScaleDegree], interval) }.toMap
+  private val intervalList = List(unison, minor_second, major_second, minor_third, major_third, perfect_fourth, augmented_fourth_or_diminished_fifth, perfect_fifth, minor_sixth, major_sixth, minor_seventh, major_seventh)
+
+  val intervals: Map[Int, Interval] = intervalList.zipWithIndex.toMap.map(_.swap)
 
 }

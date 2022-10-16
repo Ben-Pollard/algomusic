@@ -1,6 +1,6 @@
 package transformers
 
-import enums.Interval.intervals
+import enums.Interval.{Interval, intervals}
 import models.Primitives.{MidiPitch, ScaleDegree}
 import models.{AbstractChord, Chord}
 import enums.VoicingQualities.{CLOSED_EVEN, CONSONANT, INTERNALLY_SPICY, OPEN_EVEN, SPICY, SPICY_OPEN, VoicingQuality}
@@ -10,31 +10,32 @@ import scala.collection.immutable
 
 trait ChordTransformers extends AbstractChord {
 
-  case class ChordInfo(voicing: List[ScaleDegree], dissonance: Int, intervalNames: Set[String], avgDegree: Float, unevenness: Float, dissonanceOfLargestInterval: Int, range: Int)
+  case class ChordInfo(voicing: List[ScaleDegree], dissonance: Int, intervalNames: List[String], avgDegree: Float, unevenness: Float, dissonanceOfLargestInterval: Int, range: Int)
 
   def leading(chord: Chord): Chord = {
     //modify this chord to reduce dissonance with chord passed as parameter
 
     // Generate permutations of the chord we want to modify
-    val permutations = this.generatePermutations(true, this.scaleDegrees.length) //todo length should be this or chord?
+    val permutations = this.generatePermutations(true, this.scaleDegrees.toSet.size) //todo length should be this or chord?
 
     //for leading we always want the same number of voices.
     //due to repeats, the permutations may be less than the number of input voices
     // so filter for same num unique scale degrees between chords being compared, then repeat some to keep numVoices consistent.
     val permutationsWithSameNumUniqueDegrees = permutations
-      .filter(p => p.voicing.toSet.size == this.scaleDegrees.toSet.size)
-      .map(p => (p.voicing, pitches(Chord(p.voicing, scale)).toSet))
+      .filter(p => p.scaleDegrees.toSet.size == this.scaleDegrees.toSet.size)
+      .map(p => (p.scaleDegrees, p.getPitches().toSet))
 
     // Take the pitches of permutations of this and unite them with the pitches of permutations of chord.
     // Calculate dissonance between them
-    val nextChordPitches = pitches(chord).toSet
+    val nextChordPitches = chord.getPitches().toSet
     //get pitches of subsets and unite them with the next chord
     //get least discordant resulting chord
-    val nearestVoicing = permutationsWithSameNumUniqueDegrees
+    val nearestVoicing: List[ScaleDegree] = permutationsWithSameNumUniqueDegrees
       .map(p => {
-        val chordUnion = p._2.union(nextChordPitches)
+        val (degreesOfPermutation: List[ScaleDegree], pitchesOfPermutation: Set[MidiPitch]) = p
+        val chordUnion = pitchesOfPermutation.union(nextChordPitches)
         val dissonance = getIntervals(chordUnion).map(i => i.dissonanceRank).sum
-        val difference = p._2.zip(nextChordPitches).map{case (a,b) => (a-b).abs}.sum
+        val difference = pitchesOfPermutation.toList.sorted.zip(nextChordPitches.toList.sorted).map{case (a,b) => (a-b).abs}.sum
         (p, dissonance, difference)
       })
       .sortBy(permutation =>  (permutation._3, permutation._2)).head._1._1
@@ -51,7 +52,8 @@ trait ChordTransformers extends AbstractChord {
     val startingDegrees = scaleDegrees :+ scaleDegrees.head + 7 //todo what is this doing?
 
     // this gives us all possible permutations of the scale where it's a re-voicing, up to a max of numVoices
-    val voicingInfo = generatePermutations(allowInversions, numVoices)
+    val voicingInfo: List[ChordInfo]= generatePermutations(allowInversions, numVoices)
+      .map(permutation => getInfo(permutation)) //nb this is expensive. try to pre-filter
 
     val avgDegree = startingDegrees.sum.toFloat / startingDegrees.size.toFloat
 
@@ -75,7 +77,7 @@ trait ChordTransformers extends AbstractChord {
     Chord(chosenVoicingWithCorrectNumberofNotes, scale)
   }
 
-  private def generatePermutations(allowInversions: Boolean, maxVoices: Int): List[ChordInfo] = {
+  private def generatePermutations(allowInversions: Boolean, maxVoices: Int): List[Chord] = {
 
 //    // debugging code to check note names
 //    val noteNameMap = scale.getNoteNameMap().toMap
@@ -90,11 +92,24 @@ trait ChordTransformers extends AbstractChord {
     // subsets of any length. we may need to double up some notes to keep the specified numVoices
     val setOfAllowableDegrees = scale.degreeMap.keys.filter(potential => {
       scaleDegrees.exists(extantSetMember => diatonicDegreeIsSameNoteLetter(extantSetMember,potential))
-    }).toList.sorted
+    }).toSet
 
-    val subsets: List[Set[ScaleDegree]] = (inputScaleDegreeModulos.size to maxVoices).flatMap(setSize => {
-      setOfAllowableDegrees.toSet.subsets(setSize).toList
-    }).toList
+//    val subsets: List[Set[ScaleDegree]] = (inputScaleDegreeModulos.size to maxVoices).flatMap(setSize => {
+//      // here we can check if max voices comes back with anything and generate smaller permutations only if not
+//      setOfAllowableDegrees.toSet.subsets(setSize).toList
+//    }).toList
+
+    // iterate down from preferred subset size
+    def getSubsets(subsetSize: Int, initSubset: List[Set[ScaleDegree]]): List[Set[ScaleDegree]] = {
+      if (initSubset.isEmpty) {
+        assert(subsetSize >= inputScaleDegreeModulos.size)
+        val subset = setOfAllowableDegrees.subsets(subsetSize).toList
+        getSubsets(subsetSize -1, subset)
+      } else {
+        initSubset
+      }
+    }
+    val subsets: List[Set[ScaleDegree]] = getSubsets(maxVoices, List())
 
     val allowablesubsets: List[Set[ScaleDegree]] = (allowInversions match {
       case false => subsets.filter(subset => {
@@ -106,35 +121,46 @@ trait ChordTransformers extends AbstractChord {
       subset.map(d => (d+70)%7) == inputScaleDegreeModulos
     })
 
-    val voicingInfo = allowablesubsets.map(p => getInfo(Chord(p.toList, scale)))
+//    val voicingInfo = allowablesubsets.map(p => getInfo(Chord(p.toList, scale)))
+//    voicingInfo
 
-    voicingInfo
+    allowablesubsets.map(p => Chord(p.toList, scale))
   }
 
-  private def pitches(chord: Chord): List[MidiPitch] = {
-    chord.scaleDegrees.map(d => chord.scale.degreeMap(d))
-  }
 
-  private def getIntervals(pitches: Set[MidiPitch]) = {
-    (for {
-      (i, ix) <- pitches.zipWithIndex
-      (j, jx) <- pitches.zipWithIndex
-      if (ix < jx)
-    } yield (i - j).abs)
-      .map(interval => intervals.get(interval % 12).get)
+//  private def pitches(chord: Chord): List[MidiPitch] = {
+//    chord.scaleDegrees.map(d => chord.scale.degreeMap(d))
+//  }
+
+  //old implementation - profiling
+//  private def getIntervals(pitches: Set[MidiPitch]): Set[Interval] = {
+//    (for {
+//      (i, ix) <- pitches.zipWithIndex
+//      (j, jx) <- pitches.zipWithIndex
+//      if (ix < jx)
+//    } yield (i - j).abs)
+//      .map(interval => intervals.get(interval % 12).get)
+//  }
+
+  private def getIntervals(pitches: Set[MidiPitch]): Iterator[Interval] = {
+    pitches.subsets(2).map(i => {
+      val intervalValue = (i.min - i.max).abs % 12
+      intervals.get(intervalValue).get
+    })
   }
 
   private def getInfo(chord: Chord): ChordInfo = {
-    val pitches = chord.scaleDegrees.map(d => chord.scale.degreeMap(d)).toSet
+    val pitches = chord.getPitches().toSet
 
     //all pitch pairs in the chord permutation
-    val intervalsInChord = getIntervals(pitches)
+    val intervalsInChord = getIntervals(pitches).toList
 
     val dissonance = intervalsInChord.map(i => i.dissonanceRank).sum
     val names = intervalsInChord.map(_.name)
     val consecutiveDegreeDiffs = chord.scaleDegrees.sorted.sliding(2).map { case Seq(x, y, _*) => y - x }
     val unevenness = consecutiveDegreeDiffs.toSet.sum.toFloat / (chord.scaleDegrees.max - chord.scaleDegrees.min)
-    val dissonanceOfLargestInterval = intervalsInChord.toList.sortBy(_.tone).last.dissonanceRank
+    val dissonanceOfLargestInterval = intervalsInChord.sortBy(_.tone).last.dissonanceRank
+
 
     ChordInfo(
       voicing = chord.scaleDegrees,

@@ -2,15 +2,17 @@ package music.project1
 
 import enums.MidiNoteNames
 import generators.RhythmGenerators.bjorklund
-import instruments.{DefaultInstrument, Flutes, Harp, Oboes, TonalInstrument, Violins1}
+import instruments.{Harp, TonalInstrument}
 import midi.Sequencer
 import models.ArrangementConstruction.{BarInfo, SequenceInfo}
 import models.Primitives.q
 import models.Scales.modeNumberMap
-import models.{Arrangement, Rhythm, Scale, VoiceJoining}
+import models.{Arrangement, Rhythm, Scale}
 import util.NullObjects.nullPolyphonicScalePhraseBarConstructor
 
 object Runner extends App {
+
+  val startTimeMillis = System.currentTimeMillis()
 
   case class Project1SharedData(clave: Rhythm, scale: Scale, chordRoots: List[Int], chordDegrees: List[Int], sequenceIndices: List[List[SequenceInfo]])
 
@@ -41,11 +43,10 @@ object Runner extends App {
     Scale(modeNumberMap.get(3).get, MidiNoteNames.D.id, instrument)
   }
 
-  val harpHarmony = Harmony(clave, scale(Harp(6)), chordRoots, chordDegrees, sequenceIndices) //todo contruct based on base harmony
-  val harmonicRhythmArrangement = Arrangement(harpHarmony, Harp(6))
+  val harp = Harp(6, "C3", "G7") // restricting the note range reduces voicing permutation overhead
+  val harpHarmony = Harmony(clave, scale(harp), chordRoots, chordDegrees, sequenceIndices) //todo contruct based on base harmony
+  val harmonicRhythmArrangement = Arrangement(harpHarmony, harp)
 
-  //todo the harmony still isn't conforming to the correct range
-  // profile
 //  val padHarmony = Harmony(clave, scale(Violins1(8)), chordRoots, chordDegrees, sequenceIndices) //todo contruct based on base harmony
 //  val padArrangement = Arrangement(padHarmony, Violins1(8), Some(VoiceJoining(expand = true, join = true)))
 
@@ -54,6 +55,10 @@ object Runner extends App {
 //
 //  val oboeHarmony = Harmony(clave, scale(Oboes(1)), chordRoots, chordDegrees, sequenceIndices) //todo contruct based on base harmony
 //  val counterPointArrangement = Arrangement(CounterPoint(oboeHarmony), Oboes(1))
+
+  val endTimeMillis = System.currentTimeMillis()
+  val durationSeconds = (endTimeMillis - startTimeMillis) / 1000
+  println(s"Built arrangement in ${durationSeconds}s")
 
   Sequencer(harmonicRhythmArrangement).play(60)
 //  Sequencer(padArrangement ++ harmonicRhythmArrangement).play(60)
