@@ -103,7 +103,7 @@ trait RhythmTransformers extends AbstractRhythm {
     Rhythm(rhythm.beats, rhythm.subdivisions, invertedIndices, hitDurations, velocities)
   }
 
-  def beatsPerBar(newBeats: Int): Rhythm = {
+  def setBeatsPerBar(newBeats: Int): Rhythm = {
     val totalSubdivisions = beats * subdivisions
     assert(totalSubdivisions % newBeats == 0)
     val flattenedIndices = idxTuple2SubIdx(hitIndices, subdivisions)

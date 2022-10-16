@@ -2,12 +2,12 @@ package music.project1
 
 import enums.MidiNoteNames
 import generators.RhythmGenerators.bjorklund
-import instruments.{Harp, TonalInstrument}
+import instruments.{Harp, TonalInstrument, Violins1}
 import midi.Sequencer
 import models.ArrangementConstruction.{BarInfo, SequenceInfo}
 import models.Primitives.q
 import models.Scales.modeNumberMap
-import models.{Arrangement, Rhythm, Scale}
+import models.{Arrangement, Rhythm, Scale, VoiceJoining}
 import util.NullObjects.nullPolyphonicScalePhraseBarConstructor
 
 object Runner extends App {
@@ -47,8 +47,8 @@ object Runner extends App {
   val harpHarmony = Harmony(clave, scale(harp), chordRoots, chordDegrees, sequenceIndices) //todo contruct based on base harmony
   val harmonicRhythmArrangement = Arrangement(harpHarmony, harp)
 
-//  val padHarmony = Harmony(clave, scale(Violins1(8)), chordRoots, chordDegrees, sequenceIndices) //todo contruct based on base harmony
-//  val padArrangement = Arrangement(padHarmony, Violins1(8), Some(VoiceJoining(expand = true, join = true)))
+  val padHarmony = Harmony(clave, scale(Violins1(8)), chordRoots, chordDegrees, sequenceIndices) //todo contruct based on base harmony
+  val padArrangement = Arrangement(padHarmony, Violins1(8), Some(VoiceJoining(expand = true, join = true)))
 
 //  val fluteHarmony = Harmony(clave, scale(Flutes(3)), chordRoots, chordDegrees, sequenceIndices) //todo contruct based on base harmony
 //  val melodyArrangement = Arrangement(Melody(fluteHarmony), Flutes(1))
@@ -60,8 +60,8 @@ object Runner extends App {
   val durationSeconds = (endTimeMillis - startTimeMillis) / 1000
   println(s"Built arrangement in ${durationSeconds}s")
 
-  Sequencer(harmonicRhythmArrangement).play(60)
-//  Sequencer(padArrangement ++ harmonicRhythmArrangement).play(60)
+//  Sequencer(harmonicRhythmArrangement).play(60)
+  Sequencer(padArrangement ++ harmonicRhythmArrangement).play(60)
 //  Sequencer(padArrangement ++ harmonicRhythmArrangement ++ melodyArrangement ++ counterPointArrangement).play(60, repeat = 1)
 
   // todo

@@ -56,10 +56,10 @@ object Runner extends App {
   //we can build the rhythms in a 4/3 way and a 3/4 way
   //then map the 3/8s onto 4/6 so we have an even number of beats per bar
   //the total number of subdivs will affect the way the euclidean rhythms are spaced and how rotations work
-  val rhythms_4_3 = emptyRhythm(totalSubdivs).beatsPerBar(beats) +: (1 to 6)
+  val rhythms_4_3 = emptyRhythm(totalSubdivs).setBeatsPerBar(beats) +: (1 to 6)
     .map(i => {
       //beat strength: stronger if it falls on a beat and if it falls on a strong beat
-      val rhythm = bjorklund(totalSubdivs,i, h).beatsPerBar(beats)
+      val rhythm = bjorklund(totalSubdivs,i, h).setBeatsPerBar(beats)
       val velocities = rhythm.hitIndices.map(i => beatStrengthMap_4_6((i._1, i._2))._1)
       val durations = rhythm.hitIndices.map(i => beatStrengthMap_4_6((i._1, i._2))._2)
       rhythm.setVelocities(velocities).setDurations(durations)

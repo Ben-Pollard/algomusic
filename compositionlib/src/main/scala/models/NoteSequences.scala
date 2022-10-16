@@ -1,11 +1,11 @@
 package models
 
+import enums.Interval.intervals
+import enums.VoicingQualities.VoicingQuality
 import midi.MidiControlNumbers
 import models.ControlSequences.CCBarConstructor
-import enums.Interval.intervals
+import models.Primitives._
 import util.NullObjects.nullChord
-import models.Primitives.{MidiCCValue, ScaleDegree, Velocity}
-import enums.VoicingQualities.VoicingQuality
 import util.Util
 
 //A phrase is monophonic
@@ -136,8 +136,35 @@ case class PolyphonicScalePhraseBarConstructor(scalePhrases: PolyphonicScalePhra
   }
 
   def controlRandom(): PolyphonicScalePhraseBarConstructor = {
-    val ccLevel: Seq[MidiCCValue] = this.rhythm.hitDurations.map(d => Util.scaleToByte(1, d.toInt))
-    this.copy(controlBarConstructor = Some(CCBarConstructor(MidiControlNumbers.MODULATION_WHEEL_OR_LEVER, ccLevel, this.rhythm)))
+    val ccLevel: Seq[MidiCCValue] = rhythm.hitDurations.map(d => Util.scaleToByte(1, d.toInt))
+
+    assert(rhythm.durations.head.isRight)
+
+    val timestamps = rhythm.durations.map(_ match {
+      case Left(duration: Duration) => duration
+      case Right(duration: RestDuration) => duration
+    }).scanLeft(0.0)((a,b) => a+b).tail
+
+    val startEndTimes = timestamps.sliding(2,2).toList.dropRight(1)
+
+    val resolution = 10
+    val steps: Int = rhythm.beats * rhythm.subdivisions * resolution
+    val hitIndices: Seq[Int] = startEndTimes.flatMap(t => (((t(0)*resolution*rhythm.subdivisions).toInt to (t(1)*resolution*rhythm.subdivisions).toInt)))
+    val hitDurations: Seq[Duration] = List.fill(hitIndices.size)(1)
+    val velocities: Seq[Velocity] = List()
+    val ccLevels: Seq[MidiCCValue] = startEndTimes.flatMap(t => {
+      val startTime = (t(0)*resolution*rhythm.subdivisions).toInt
+      val endTime = (t(1)*resolution*rhythm.subdivisions).toInt
+      val range = 0 to (endTime - startTime)
+      val percents = range.map(_.toDouble/range.max)
+      val ccValues = percents.map(p => (50 + p * (120-50)).toInt)
+      ccValues
+    })
+
+    val controlRhythm = Rhythm(steps, hitIndices, hitDurations, velocities).setBeatsPerBar(rhythm.beats)
+    this.copy(controlBarConstructor = Some(CCBarConstructor(MidiControlNumbers.MODULATION_WHEEL_OR_LEVER, ccLevels, controlRhythm)))
+
+//    this.copy(controlBarConstructor = Some(CCBarConstructor(MidiControlNumbers.MODULATION_WHEEL_OR_LEVER, ccLevel, rhythm)))
   }
 }
 

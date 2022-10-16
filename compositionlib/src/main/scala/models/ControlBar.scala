@@ -12,7 +12,7 @@ object ControlBar {
 
     val (midiCCNum, midiCCValues, rhythm) = (constructor.midiCCNum.id, constructor.midiCCValues, constructor.rhythm)
 
-    assert(midiCCValues.length == rhythm.velocities.length)
+    assert(midiCCValues.length == rhythm.hitIndices.length)
     assert(rhythm.durations.filter(_.isLeft).length == midiCCValues.length)
 
     val onNotes = midiCCValues zip rhythm.durations.filter(_.isLeft) map { n => MidiCC(
