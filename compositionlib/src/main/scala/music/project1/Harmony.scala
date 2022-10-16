@@ -1,99 +1,49 @@
 package music.project1
 
-import models.NoteSequences.{PolyphonicScalePhrase, PolyphonicScalePhraseBarConstructor, ScalePhrase}
+import enums.VoicingQualities
+import instruments.{Instrument, TonalInstrument}
+import models.ArrangementConstruction.{BarConstructionAndSequencingData, BarInfo, SequenceInfo}
 import models.Primitives._
 import models._
-import music.project1.Runner.{BarInfo, Project1SharedData, scanSeed}
-import transformers.SequenceTransformers.rotate
+import util.SequenceTransformers.rotate
 
 object Harmony {
 
-  def apply(sd: Project1SharedData) = {
+  def apply(clave: Rhythm, scale: Scale, chordRoots: List[Int], chordDegrees: List[Int], sequenceIndices: List[List[SequenceInfo]]): BarConstructionAndSequencingData = {
 
     //Build up a chord sequence from the seed
-    val harmonicPhrasesWithSequenceIndexing = sd.sequenceIndices.map(s => {
+    val harmonicPhrasesWithSequenceIndexing = sequenceIndices.map(s => {
       val barNum = s.head.barNum
-      val pp = sd.chordDegrees.map(d => ScalePhrase(s.map(i => i.degree + d), sd.scale))
+      val pp = chordDegrees.map(d => ScalePhrase(s.map(i => i.rootDegree + d), scale))
       val rhythm = {
-        val rotatedDurations = sd.clave.copy(hitDurations = rotate(List(w, h, q, w, h).map(_ * 2), barNum + 4))
+        val rotatedDurations = clave.copy(hitDurations = rotate(List(w, h, q, w, h).map(_ * 2), barNum + 4))
         val alternateBarSwing = rotatedDurations.rotate(0, barNum % 2)
         alternateBarSwing
+        clave.copy(hitDurations = List(w, h, q, w, h).map(_*1))
       }.rotateVelocities(barNum) //hit a punctuation every 6
-      val barConstructor = PolyphonicScalePhraseBarConstructor(PolyphonicScalePhrase(pp), rhythm)
+      val barConstructor = PolyphonicScalePhraseBarConstructor(PolyphonicScalePhrase(pp), rhythm).controlRandom()
       BarInfo(barConstructor, barConstructor, s)
     })
 
     //VOICE LEADING
     //Voice leading needs to know where the chord changes are and have some lookahead/lookbehind
-    //Once we start changing things, chord change locations might effectively change - let's preserve the original locations
+    //Once we start changing things, chord change locations might effectively change
+    // - so we preserve the original locations for passing through to transformers e.g. harmony -> melody
 
+    val revoiced: BarConstructionAndSequencingData = harmonicPhrasesWithSequenceIndexing.map(p => {
+      val newConstructor = p.oldConstructor.revoice(
+        staticRoot=false,
+        allowInversions=true,
+        voicingQuality = VoicingQualities.INTERNALLY_SPICY,
+        qualityRank = 0,
+        numVoices = scale.instrument.voices
+      )
+        .leading()
 
-
-    val revoiced = harmonicPhrasesWithSequenceIndexing.map(p => {
-      val newConstructor = p.oldConstructor.revoice()
-      p.copy(oldConstructor = newConstructor, newConstructor = newConstructor)
+      p.copy(newConstructor = newConstructor, oldConstructor = newConstructor)
     })
-    //    .scanLeft(scanSeed)((a,b) => { //between-bar voicings
-    //      b.
-    //    })
 
-    val piano = revoiced.map { c => Bar(c.oldConstructor) }
-
-
-
-    //melody ideas
-    //establishing the root; leaps; create an expectation; judicious use of repetition; contrapunctal movement wrt harmony
-    //concordancy wrt harmony
-    //start with a rhythm
-    //step 1: contrary motion relative to the bar starts or to the changes?
-
-
-    //Goals for this melody:
-    //construct the phrase from the current outline note and the next outline note
-    //harmonic logic for outline notes
-
-    val harmonisedMelody = revoiced.map(c => {
-      val transposed = c.oldConstructor.copy(scalePhrases = c.oldConstructor.scalePhrases.transpose(7))
-      BarInfo(transposed, transposed, c.sequenceInfo)
-    }).scanLeft(scanSeed)((a, b) => {
-      //In this scan we outline the melody
-      val AEmpty = a.oldConstructor.rhythm.beats == 0
-      val firstDegreeBOld = b.oldConstructor.scalePhrases.phrases.head.degreeSequence.head
-      val firstDegreeAOld = if (AEmpty) firstDegreeBOld else a.oldConstructor.scalePhrases.phrases.head.degreeSequence.head
-      val firstDegreeBNew = b.newConstructor.scalePhrases.phrases.head.degreeSequence.head
-      val firstDegreeANew = if (AEmpty) firstDegreeBNew else a.newConstructor.scalePhrases.phrases.head.degreeSequence.head
-
-      val direction = Direction(firstDegreeAOld, firstDegreeBOld)
-      val motion = NoteFinder.stepDegrees(direction.opposite, firstDegreeANew, 1)
-
-      val roots = b.oldConstructor.scalePhrases.phrases.take(1)
-
-      val newPhrases = roots.map(p => {
-        val degreeSequence = List(motion)
-        p.copy(degreeSequence = degreeSequence)
-      })
-
-      val newRhythm = b.oldConstructor.rhythm.take(1)
-
-
-      val newConstructor = PolyphonicScalePhraseBarConstructor(PolyphonicScalePhrase(newPhrases), newRhythm)
-      BarInfo(b.oldConstructor, newConstructor, b.sequenceInfo)
-    }).tail
-      .scanRight(scanSeed)((a, b) => {
-        //in this scan we colour it in
-        val BEmpty = b.oldConstructor.rhythm.beats == 0
-        //we need to get to a barconstructor so we can call the infiller
-        val targetNote = if (BEmpty) 1 else b.newConstructor.roots.scalePhrase.degreeSequence.head //start of next bar - if last bar, 1? idk, we should get this from a reduce or something
-        val newConstructor = a.newConstructor.roots.scalePhraseRunFiller(a.oldConstructor.rhythm, targetNote).toPoly
-        BarInfo(a.oldConstructor, newConstructor, a.sequenceInfo)
-      })
-      .init
-      .map(bi => Bar(bi.newConstructor))
-
-
-    val pianoLine = List(BarSequence(piano, 2))
-    //  val bassLine = List(BarSequence(bass, 3))
-    val melodyLine = List(BarSequence(harmonisedMelody, 5))
-    Arrangement(pianoLine ++ melodyLine).repeat(2)
+    revoiced
   }
+
 }

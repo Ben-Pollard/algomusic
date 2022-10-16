@@ -1,33 +1,17 @@
 package music.project1
 
-import models.NoteSequences.{PolyphonicScalePhrase, PolyphonicScalePhraseBarConstructor, ScalePhrase}
-import models.Primitives.{Direction, h, q, w}
-import models.{Arrangement, Bar, BarSequence, NoteFinder}
-import music.project1.Runner.{BarInfo, Project1SharedData, scanSeed}
-import transformers.SequenceTransformers.rotate
+import models.ArrangementConstruction.{BarConstructionAndSequencingData, BarInfo}
+import models.{NoteFinder, PolyphonicScalePhrase, PolyphonicScalePhraseBarConstructor, ScalePhrase}
+import models.Primitives.Direction
+import music.project1.Runner.scanSeed
 
 object CounterPoint {
 
-  def apply(sd: Project1SharedData) = {
-
-    //cantus firmus
-    val harmonicPhrasesWithSequenceIndexing = (sd.sequenceIndices ++ sd.sequenceIndices).map(s => {
-      val barNum = s.head.barNum
-      val pp = sd.chordDegrees.map(d => ScalePhrase(s.map(i => i.degree + d), sd.scale))
-      val rhythm = {
-        val rotatedDurations = sd.clave.copy(hitDurations = rotate(List(w, h, q, w, h).map(_ * 2), barNum + 4))
-        val alternateBarSwing = rotatedDurations.rotate(0, barNum % 2)
-        alternateBarSwing
-      }.rotateVelocities(barNum) //hit a punctuation every 6
-      val barConstructor = PolyphonicScalePhraseBarConstructor(PolyphonicScalePhrase(pp), rhythm)
-      BarInfo(barConstructor, barConstructor, s)
-    })
-
-    val piano = harmonicPhrasesWithSequenceIndexing.map { c => Bar(c.oldConstructor) }
+  def apply(harmony: BarConstructionAndSequencingData): BarConstructionAndSequencingData = {
 
 
-    val harmonisedMelody = harmonicPhrasesWithSequenceIndexing.map(c => {
-      val transposed = c.oldConstructor.copy(scalePhrases = c.oldConstructor.scalePhrases.transpose(7))
+    val harmonisedMelody = harmony.map(c => {
+      val transposed = c.oldConstructor.copy(scalePhrases = c.oldConstructor.scalePhrases.transpose(14))
       BarInfo(transposed, transposed, c.sequenceInfo)
     }).scanLeft(scanSeed)((a, b) => {
       //In this scan we outline the melody
@@ -81,10 +65,7 @@ object CounterPoint {
         BarInfo(a.oldConstructor, newConstructor, a.sequenceInfo)
       })
       .init
-      .map(bi => Bar(bi.newConstructor))
 
-    val pianoLine = List(BarSequence(piano, 2))
-    val melodyLine = List(BarSequence(harmonisedMelody, 5))
-    Arrangement(pianoLine ++melodyLine).repeat(1)
+    harmonisedMelody
   }
 }

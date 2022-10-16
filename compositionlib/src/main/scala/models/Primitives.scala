@@ -1,5 +1,7 @@
 package models
 
+import javax.sound.midi.ShortMessage
+
 object Primitives {
 
   type MidiCCValue = Int
@@ -48,6 +50,8 @@ object Primitives {
     val duration: Duration
   }
 
+  type Voice = Seq[MidiMessageWithDuration]
+
   case class MidiCC(duration: Duration, number: MidiCCNum, value: Option[MidiCCValue]) extends MidiMessageWithDuration
   //NOTE
   case class MidiNote(pitch: Option[MidiPitch], duration: Duration, velocity: Velocity) extends MidiMessageWithDuration
@@ -61,6 +65,18 @@ object Primitives {
     val n: Byte = 0
     def apply(duration: Duration) = MidiCC(duration, n, None)
   }
+
+//MIDI SEQUENCING
+  type Command = java.lang.Integer
+  val noteOn: Command = 144
+  val noteOff: Command = 128
+  val controlChange: Command = 176
+  case class MessageWithTimeStamp(message: ShortMessage, timeStamp: Long)
+  case class MessagePair(messagePair: Option[(ShortMessage, ShortMessage)], waitDuration: Long)
+  case class MessagePairWithTimestamp(messagePair: MessagePair, timestamp: Long)
+  type MidiMonophonicBar = Seq[MessagePair]
+  type MidiPolyphonicBar = Seq[MidiMonophonicBar]
+  type MidiTrack = Seq[MidiPolyphonicBar]
 
 
   //PITCH CONSTRUCTORS

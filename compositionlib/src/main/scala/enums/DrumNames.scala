@@ -1,4 +1,4 @@
-package models
+package enums
 
 object DrumNames extends Enumeration {
   type Drum = Value

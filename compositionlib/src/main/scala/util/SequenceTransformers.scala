@@ -1,4 +1,4 @@
-package transformers
+package util
 
 object SequenceTransformers {
   def rotate[A](seq: Seq[A], i: Int) = {

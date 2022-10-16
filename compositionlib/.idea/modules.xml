@@ -4,6 +4,8 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/Hello.iml" filepath="$PROJECT_DIR$/.idea/modules/Hello.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/Hello-build.iml" filepath="$PROJECT_DIR$/.idea/modules/Hello-build.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/compositionlib.Hello.iml" filepath="$PROJECT_DIR$/.idea/modules/compositionlib.Hello.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/project.Hello-build.iml" filepath="$PROJECT_DIR$/.idea/modules/project.Hello-build.iml" />
     </modules>
   </component>
 </project>

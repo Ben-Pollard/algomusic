@@ -2,7 +2,9 @@ package generators
 
 import models.Primitives.{Duration, durations, w}
 import models._
-import transformers.RhythmTransformers.subIdx2Tuple
+import util.Util.subIdx2Tuple
+
+
 
 object Meter {
 

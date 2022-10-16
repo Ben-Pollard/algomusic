@@ -1,6 +1,6 @@
 package models
 
-import models.Interval.Interval
+import enums.Interval.Interval
 import models.Primitives._
 
 

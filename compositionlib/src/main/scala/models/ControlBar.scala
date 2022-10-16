@@ -1,24 +1,23 @@
 package models
 
-import midi.MidiControlNumbers
-import models.Primitives.{CCRest, MidiCC, MidiCCNum, MidiCCValue, NoteRest}
+import instruments.Instrument
+import models.ControlSequences.CCBarConstructor
+import models.Primitives.{CCRest, MidiCC}
 
 
 object ControlBar {
-  //assumes number of non-rests are equal to number of pitches
-
-//  case class ControlPhrase(notes: Seq[Seq[MidiCC]])
-//  type PolyphonicControlPhrase = List[ControlPhrase]
 
   //constructor for bar of control values
-  def apply(midiCCNum: MidiControlNumbers.Value, midiCCValues: List[MidiCCValue], rhythm: Rhythm): Bar = {
+  def apply(constructor: CCBarConstructor, instrument: Instrument): Bar = {
+
+    val (midiCCNum, midiCCValues, rhythm) = (constructor.midiCCNum.id, constructor.midiCCValues, constructor.rhythm)
 
     assert(midiCCValues.length == rhythm.velocities.length)
     assert(rhythm.durations.filter(_.isLeft).length == midiCCValues.length)
 
     val onNotes = midiCCValues zip rhythm.durations.filter(_.isLeft) map { n => MidiCC(
       duration = n._2.left.get,
-      number = midiCCNum.id,
+      number = midiCCNum,
       value = Some(n._1)) }
 
     val rests = rhythm.durations.filter(_.isRight).map(r => CCRest(r.right.get))
@@ -30,7 +29,7 @@ object ControlBar {
     val roundedNotes = notes.zipWithIndex.map(n => if (n._2== notes.length/2) n._1.copy(duration = n._1.duration + roundingError) else n._1)
 
 
-    Bar(roundedNotes :: Nil)
+    Bar(roundedNotes :: Nil, instrument)
   }
 
 

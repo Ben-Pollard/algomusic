@@ -1,6 +1,6 @@
 package midi
 
-import models.Primitives.MidiPitch
+import models.Primitives.{MidiPitch, midiRange}
 
 object FLStudioMIDIMap {
   val noteNames = List("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B")
@@ -8,7 +8,7 @@ object FLStudioMIDIMap {
   private val lowestNoteName = "C"
   private val highestNoteName = "G"
   type PitchName = String
-  private val numbers = 0 to 8
+  private val numbers = 0 to 10
   private val minNum = numbers.min
   private val maxNum = numbers.max
 
@@ -24,5 +24,6 @@ object FLStudioMIDIMap {
     }
     .map { case (name, num) => s"$name$num" }
     .zipWithIndex
+    .filter(midiNum => midiNum._2 >= midiRange.min & midiNum._2 <= midiRange.max)
     .toMap
 }
