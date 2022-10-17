@@ -7,6 +7,7 @@ import enums.VoicingQualities.{CLOSED_EVEN, CONSONANT, INTERNALLY_SPICY, OPEN_EV
 import util.Util.diatonicDegreeIsSameNoteLetter
 
 import scala.collection.immutable
+import scala.collection.parallel.immutable.ParVector
 
 trait ChordTransformers extends AbstractChord {
 
@@ -16,7 +17,7 @@ trait ChordTransformers extends AbstractChord {
     //modify this chord to reduce dissonance with chord passed as parameter
 
     // Generate permutations of the chord we want to modify
-    val permutations = this.generatePermutations(true, this.scaleDegrees.toSet.size) //todo length should be this or chord?
+    val permutations: ParVector[Chord] = this.generatePermutations(true, this.scaleDegrees.toSet.size).par
 
     //for leading we always want the same number of voices.
     //due to repeats, the permutations may be less than the number of input voices
@@ -37,7 +38,7 @@ trait ChordTransformers extends AbstractChord {
         val dissonance = getIntervals(chordUnion).map(i => i.dissonanceRank).sum
         val difference = pitchesOfPermutation.toList.sorted.zip(nextChordPitches.toList.sorted).map{case (a,b) => (a-b).abs}.sum
         (p, dissonance, difference)
-      })
+      }).toVector
       .sortBy(permutation =>  (permutation._3, permutation._2)).head._1._1
 
     val targetNumVoices = chord.scaleDegrees.length
@@ -52,8 +53,8 @@ trait ChordTransformers extends AbstractChord {
     val startingDegrees = scaleDegrees :+ scaleDegrees.head + 7 //todo what is this doing?
 
     // this gives us all possible permutations of the scale where it's a re-voicing, up to a max of numVoices
-    val voicingInfo: List[ChordInfo]= generatePermutations(allowInversions, numVoices)
-      .map(permutation => getInfo(permutation)) //nb this is expensive. try to pre-filter
+    val voicingInfo: Vector[ChordInfo]= generatePermutations(allowInversions, numVoices)
+      .map(permutation => getInfo(permutation)).toVector //nb this is expensive. try to pre-filter
 
     val avgDegree = startingDegrees.sum.toFloat / startingDegrees.size.toFloat
 
@@ -77,7 +78,7 @@ trait ChordTransformers extends AbstractChord {
     Chord(chosenVoicingWithCorrectNumberofNotes, scale)
   }
 
-  private def generatePermutations(allowInversions: Boolean, maxVoices: Int): List[Chord] = {
+  private def generatePermutations(allowInversions: Boolean, maxVoices: Int): ParVector[Chord] = {
 
 //    // debugging code to check note names
 //    val noteNameMap = scale.getNoteNameMap().toMap
@@ -100,18 +101,18 @@ trait ChordTransformers extends AbstractChord {
 //    }).toList
 
     // iterate down from preferred subset size
-    def getSubsets(subsetSize: Int, initSubset: List[Set[ScaleDegree]]): List[Set[ScaleDegree]] = {
+    def getSubsets(subsetSize: Int, initSubset: Vector[Set[ScaleDegree]]): Vector[Set[ScaleDegree]] = {
       if (initSubset.isEmpty) {
         assert(subsetSize >= inputScaleDegreeModulos.size)
-        val subset = setOfAllowableDegrees.subsets(subsetSize).toList
+        val subset = setOfAllowableDegrees.subsets(subsetSize).toVector
         getSubsets(subsetSize -1, subset)
       } else {
         initSubset
       }
     }
-    val subsets: List[Set[ScaleDegree]] = getSubsets(maxVoices, List())
+    val subsets: ParVector[Set[ScaleDegree]] = getSubsets(maxVoices, Vector()).par
 
-    val allowablesubsets: List[Set[ScaleDegree]] = (allowInversions match {
+    val allowablesubsets: ParVector[Set[ScaleDegree]] = (allowInversions match {
       case false => subsets.filter(subset => {
         diatonicDegreeIsSameNoteLetter(scaleDegrees.min, subset.min)
       })

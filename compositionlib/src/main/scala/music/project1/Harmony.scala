@@ -7,9 +7,11 @@ import models.Primitives._
 import models._
 import util.SequenceTransformers.rotate
 
+import scala.collection.parallel.ParSeq
+
 object Harmony {
 
-  def apply(clave: Rhythm, scale: Scale, chordRoots: List[Int], chordDegrees: List[Int], sequenceIndices: List[List[SequenceInfo]]): BarConstructionAndSequencingData = {
+  def apply(clave: Rhythm, scale: Scale, chordRoots: List[Int], chordDegrees: List[Int], sequenceIndices: ParSeq[List[SequenceInfo]]): BarConstructionAndSequencingData = {
 
     //Build up a chord sequence from the seed
     val harmonicPhrasesWithSequenceIndexing = sequenceIndices.map(s => {
@@ -41,7 +43,7 @@ object Harmony {
         .leading()
 
       p.copy(newConstructor = newConstructor, oldConstructor = newConstructor)
-    })
+    }).toList
 
     revoiced
   }

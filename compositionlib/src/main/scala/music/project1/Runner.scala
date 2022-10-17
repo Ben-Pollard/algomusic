@@ -33,7 +33,7 @@ object Runner extends App {
     .grouped(5)
     .zipWithIndex
     .map(i => i._1.zip(List.fill(i._1.length)(i._2)).map(j => SequenceInfo(j._1._1, j._1._2, j._2)))
-    .toList
+    .toList.par
 
 //  val sd = Project1SharedData(clave, scale, chordRoots, chordDegrees, sequenceIndices)
 
@@ -57,21 +57,41 @@ object Runner extends App {
 //  val counterPointArrangement = Arrangement(CounterPoint(oboeHarmony), Oboes(1))
 
   val endTimeMillis = System.currentTimeMillis()
-  val durationSeconds = (endTimeMillis - startTimeMillis) / 1000
-  println(s"Built arrangement in ${durationSeconds}s")
+  val durationSeconds = (endTimeMillis - startTimeMillis)
+  println(s"Built arrangement in ${durationSeconds}ms")
 
 //  Sequencer(harmonicRhythmArrangement).play(60)
   Sequencer(padArrangement ++ harmonicRhythmArrangement).play(60)
 //  Sequencer(padArrangement ++ harmonicRhythmArrangement ++ melodyArrangement ++ counterPointArrangement).play(60, repeat = 1)
 
   // todo
+  // DSP (control signals and track structure)
+  // Use JDSP to generate a signal
+  // Apply the signal to a control parameter
+  // Create more signals - vibrato, lognorm, reverse lognorm
+  // Use vibrato + reverse lognorm to introduce vibrato as a note is sustained
+  // Map the signals to notes based on note length
+  // Map the signals to notes based on track structure data
+
   // ## Expression
   // map expression data to bar dynamics
   // extend to two cc parameters - keep it within a single control bar
   // send articulation control information
-  // Build and visualise metastructure data
+  // vibrato (change in pitch, also maybe in amplitude/volume)
+  // adsr
+  // separate expression types - on beat and smoothed
+  // velocity response e.g. changes to drum adsr
+  // timbre - research and map to plugins
+
+  // Track structure
+  // Data structure for metadata, e.g. matrix, dataframe
+  // Visualise
+  // Map existing structure based on loops to the data structure
+  // Define parameters - tension/release, emphasis - do some research
   // Map control data to metastructure
   // Combine internal bar dynamics with metastructure and map to expression / articulation control
+
+
 
   // ## Harmony
   // Change the key
@@ -82,4 +102,17 @@ object Runner extends App {
   // Simple polyrhythms
   // Percussive expression (adsr)
   // Rhythmic response to metastructure
+
+  // Instruments
+  // Check out Google NSynth
+
+  // DAW templating
+  // Check out REAPER
+  // Check out bitwig java api
+
+  // Speed optimisation
+  // Look for opportunities to use collection.par
+  // 1779ms -> 975ms by parallelising sequence indices. -> 892ms (generatePermutations)
+  // Remember to consider importance of ordering
+  // Consider when to use array or vector (head, tail, indexing, par, +, :+, ++)
 }

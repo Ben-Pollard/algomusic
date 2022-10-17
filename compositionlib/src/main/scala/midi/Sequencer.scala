@@ -4,10 +4,9 @@ import midi.Devices.{getOutputDevice, getSequencerDevice}
 import midi.DevicesNames.DeviceName
 import models.Arrangement
 import models.Primitives._
-
 import java.io.File
 import javax.sound
-import javax.sound.midi.{MetaMessage, MidiDevice, MidiEvent, MidiSystem, Sequence, ShortMessage, Transmitter}
+import javax.sound.midi._
 import scala.collection.JavaConverters._
 import scala.collection.parallel.ForkJoinTaskSupport
 import scala.concurrent.forkjoin.ForkJoinPool
@@ -97,6 +96,8 @@ object Sequencer {
   val ppq = 960 //ticks per quarter note or beat //todo force note length to be int when multiplied by PPQ
 
   def apply(arrangement: Arrangement): Sequencer = {
+    val startTimeMillis = System.currentTimeMillis()
+
     val tracks = arrangement.tracks.map { track =>
       val trackAsBarsWithEndTimes = track.bars.map(bar => {
         val voiceWithEndTime = bar.voices.map(voice => {
@@ -219,6 +220,10 @@ object Sequencer {
       }
       ScalaSequence(sequence, device)
     }).toSeq
+
+    val endTimeMillis = System.currentTimeMillis()
+    val durationSeconds = (endTimeMillis - startTimeMillis)
+    println(s"Built MIDI sequence in ${durationSeconds}ms")
 
     Sequencer(sequences, ppq)
   }

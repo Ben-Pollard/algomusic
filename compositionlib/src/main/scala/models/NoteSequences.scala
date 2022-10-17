@@ -8,6 +8,8 @@ import models.Primitives._
 import util.NullObjects.nullChord
 import util.Util
 
+import scala.collection.parallel.ParSeq
+
 //A phrase is monophonic
 case class ScalePhrase(degreeSequence: List[ScaleDegree], scale: Scale) {
 
