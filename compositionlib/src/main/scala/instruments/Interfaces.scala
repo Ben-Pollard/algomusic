@@ -2,9 +2,7 @@ package instruments
 
 import enums.DrumNames
 import midi.DevicesNames.DeviceName
-import midi.FLStudioMIDIMap
-import models.Primitives.PitchName
-import models.Primitives.MidiPitch
+import models.Primitives.{MidiPitch, PitchName}
 
 abstract class Instrument {
   val channel: Int

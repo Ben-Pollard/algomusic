@@ -1,7 +1,7 @@
 package models
 
 import models.Primitives.{Duration, RestDuration, RhythmDurations, Velocity}
-import transformers.RhythmTransformers
+import transformers.{ControlRhythmTransformers, RhythmTransformers}
 
 
 //the job of this class is to carry the note/rest durations for the Midi Sequencer, along with information used by the transformers
@@ -28,7 +28,8 @@ case class Rhythm (
     durations: RhythmDurations,
     velocities: Seq[Velocity])
 
-    with RhythmTransformers {
+    with RhythmTransformers
+    with ControlRhythmTransformers {
 
 
   def info() = {

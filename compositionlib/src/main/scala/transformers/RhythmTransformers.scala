@@ -1,7 +1,6 @@
 package transformers
 
 import models.Primitives.{Duration, Velocity}
-import models.midibuilders.{AbstractBar, Bar}
 import models.{AbstractRhythm, Rhythm}
 import util.SequenceTransformers
 import util.Util.{idxTuple2SubIdx, subIdx2Tuple}

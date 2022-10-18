@@ -24,7 +24,7 @@ object Harmony {
         alternateBarSwing
         clave.copy(hitDurations = List(w, h, q, w, h).map(_*1))
       }.rotateVelocities(barNum) //hit a punctuation every 6
-      val barConstructor = PolyphonicScalePhraseBarConstructor(PolyphonicScalePhrase(pp), rhythm).controlTest()
+      val barConstructor = PolyphonicScalePhraseBarConstructor(PolyphonicScalePhrase(pp), rhythm).applySineToEachNote()
       BarInfo(barConstructor, barConstructor, s)
     })
 

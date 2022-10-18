@@ -34,7 +34,7 @@ case class Sequencer(sequences: Seq[ScalaSequence], ppq: Int) {
     pc.map(s => playOnPort(s))
   }
 
-  def initJavaSequencer(sequence: ScalaSequence, bpm: Int, repeat: Int = 1): SequencerInitResult = {
+  private def initJavaSequencer(sequence: ScalaSequence, bpm: Int, repeat: Int = 1): SequencerInitResult = {
     // set tempo midi meta message
     val tempo: BigInt = 1000000 * 60 / bpm
     val numerator: Byte = 4 //4 beats per bar
@@ -66,7 +66,7 @@ case class Sequencer(sequences: Seq[ScalaSequence], ppq: Int) {
     val outputDevice = getOutputDevice(portName)
     transmitter.setReceiver(outputDevice.getReceiver)
 
-    // playback
+    // playback init
     outputDevice.open()
     sequencerDevice.open()
 
@@ -77,7 +77,7 @@ case class Sequencer(sequences: Seq[ScalaSequence], ppq: Int) {
     SequencerInitResult(sequencerDevice, transmitter, outputDevice, portName)
   }
 
-  def playOnPort(init: SequencerInitResult) = {
+  private def playOnPort(init: SequencerInitResult) = {
     init.sequencerDevice.start()
     println(s"Playing on port ${init.portName}")
     while (init.sequencerDevice.isRunning()) {

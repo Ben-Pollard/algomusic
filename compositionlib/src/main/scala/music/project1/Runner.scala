@@ -67,7 +67,6 @@ object Runner extends App {
 
   // todo
   // CC
-  // Refactor PoC code
   // Choose to apply signals to notes or bars
   // Separate expression types - on beat and smoothed
   // Create more signals - vibrato, lognorm, reverse lognorm
