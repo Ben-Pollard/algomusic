@@ -13,8 +13,12 @@ object Util {
     println((2 until subdivs toList).filter(i => subdivs % i == 0).map(i => (i, subdivs/i)))
   }
 
-  def scaleToByte(max: Int, n: Int) = {
-    127 * n/max
+  def scaleToByte(max: Int, n: Int)= {
+    127 * n / max
+  }
+
+  def scaleToByte(max: Double, n: Double)= {
+    127 * n / max
   }
 
   def idxTuple2SubIdx(idx: Seq[(Int, Int)], subdivisions: Int) = {

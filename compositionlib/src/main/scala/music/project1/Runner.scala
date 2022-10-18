@@ -1,13 +1,14 @@
 package music.project1
 
 import enums.MidiNoteNames
-import generators.RhythmGenerators.bjorklund
+import generators.RhythmGenerators.generateBjorklundSequence
 import instruments.{Harp, TonalInstrument, Violins1}
 import midi.Sequencer
-import models.ArrangementConstruction.{BarInfo, SequenceInfo}
+import models.midibuilders.ArrangementConstruction.{BarInfo, SequenceInfo}
 import models.Primitives.q
 import models.Scales.modeNumberMap
-import models.{Arrangement, Rhythm, Scale, VoiceJoining}
+import models.midibuilders.{Arrangement, VoiceJoining}
+import models.{Rhythm, Scale}
 import util.NullObjects.nullPolyphonicScalePhraseBarConstructor
 
 object Runner extends App {
@@ -16,7 +17,7 @@ object Runner extends App {
 
   case class Project1SharedData(clave: Rhythm, scale: Scale, chordRoots: List[Int], chordDegrees: List[Int], sequenceIndices: List[List[SequenceInfo]])
 
-  val clave = bjorklund(16, 5, hitDuration = q, List(100, 75, 65, 90, 75)).steps2Subdivisions(4)
+  val clave = generateBjorklundSequence(16, 5, hitDuration = q, List(100, 75, 65, 90, 75)).steps2Subdivisions(4)
   clave.info()
 
 //  val circleOfFifths = List(1, 4, 7, 2, 5, 8, 3, 6).map(_ - 1)
@@ -65,25 +66,25 @@ object Runner extends App {
 //  Sequencer(padArrangement ++ harmonicRhythmArrangement ++ melodyArrangement ++ counterPointArrangement).play(60, repeat = 1)
 
   // todo
-  // DSP (control signals and track structure)
-  // Use JDSP to generate a signal
-  // Apply the signal to a control parameter
+  // CC
+  // Refactor PoC code
+  // Choose to apply signals to notes or bars
+  // Separate expression types - on beat and smoothed
   // Create more signals - vibrato, lognorm, reverse lognorm
-  // Use vibrato + reverse lognorm to introduce vibrato as a note is sustained
   // Map the signals to notes based on note length
-  // Map the signals to notes based on track structure data
+  // Apply signals based on track structure data
 
   // ## Expression
   // map expression data to bar dynamics
   // extend to two cc parameters - keep it within a single control bar
   // send articulation control information
   // vibrato (change in pitch, also maybe in amplitude/volume)
+  // Use vibrato + reverse lognorm to introduce vibrato as a note is sustained
   // adsr
-  // separate expression types - on beat and smoothed
   // velocity response e.g. changes to drum adsr
   // timbre - research and map to plugins
 
-  // Track structure
+  // ## Track structure
   // Data structure for metadata, e.g. matrix, dataframe
   // Visualise
   // Map existing structure based on loops to the data structure
@@ -91,7 +92,8 @@ object Runner extends App {
   // Map control data to metastructure
   // Combine internal bar dynamics with metastructure and map to expression / articulation control
 
-
+  // ## Music driver
+  // Boringness analyser - see notebook
 
   // ## Harmony
   // Change the key
@@ -103,16 +105,11 @@ object Runner extends App {
   // Percussive expression (adsr)
   // Rhythmic response to metastructure
 
-  // Instruments
+  // ## Instruments
   // Check out Google NSynth
 
-  // DAW templating
+  // ## DAW templating
   // Check out REAPER
   // Check out bitwig java api
 
-  // Speed optimisation
-  // Look for opportunities to use collection.par
-  // 1779ms -> 975ms by parallelising sequence indices. -> 892ms (generatePermutations)
-  // Remember to consider importance of ordering
-  // Consider when to use array or vector (head, tail, indexing, par, +, :+, ++)
 }

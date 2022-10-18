@@ -1,9 +1,11 @@
 package music.project1
 
-import models.ArrangementConstruction.{BarConstructionAndSequencingData, BarInfo}
+import models.midibuilders.ArrangementConstruction.{BarConstructionAndSequencingData, BarInfo}
 import models.Primitives._
 import models._
+import models.barconstructors.PolyphonicScalePhraseBarConstructor
 import music.project1.Runner.scanSeed
+import util.NoteFinder
 
 object Melody {
 

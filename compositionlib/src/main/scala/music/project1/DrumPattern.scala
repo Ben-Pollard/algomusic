@@ -1,10 +1,11 @@
 package music.project1
 
-import generators.Meter.{allSubdivisions, beatIndices, onBeats, theOne}
-import generators.RhythmGenerators.bjorklund
 import enums.DrumNames._
+import generators.Meter.{allSubdivisions, beatIndices, onBeats, theOne}
+import generators.RhythmGenerators
 import instruments.FPC
-import models._
+import models.{midibuilders, _}
+import models.midibuilders.{Arrangement, Bar, Track}
 import music.project1.Runner.Project1SharedData
 
 object DrumPattern {
@@ -24,8 +25,8 @@ object DrumPattern {
     //So let's fix a number of beats per bar, then apply transformations to beats expressed in different numbers of beats
     //Or is this just another way of saying take two beats and spread them out over six?
     val beatsPerBar = 6
-    val _2 = bjorklund(6,2, List(100, 75))
-    val _3 = bjorklund(6,3, List(90, 75, 75))
+    val _2 = RhythmGenerators.generateBjorklundSequence(6,2, List(100, 75))
+    val _3 = RhythmGenerators.generateBjorklundSequence(6,3, List(90, 75, 75))
 //    val _2_2 = onBeats(2,1)
 //    val _3_2 = onBeats(3,1)
 
@@ -33,7 +34,7 @@ object DrumPattern {
 
     val kit = FPC
 
-    val kick1 = Bar(KICK, _2, kit)
+    val kick1 = midibuilders.Bar(KICK, _2, kit)
     val kick = List.fill(2)(kick1)
 
 //    //  val hhc1 = Bar(HHC, clave, claveVelocities)
@@ -48,7 +49,7 @@ object DrumPattern {
     val hhp = List.fill(1)(hhp1)
 //
 
-    val sn1 = Bar(SNARE, _3, kit)
+    val sn1 = midibuilders.Bar(SNARE, _3, kit)
     val sn = List.fill(2)(sn1)
 
 

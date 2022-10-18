@@ -2,9 +2,10 @@ package music.project1
 
 import enums.VoicingQualities
 import instruments.{Instrument, TonalInstrument}
-import models.ArrangementConstruction.{BarConstructionAndSequencingData, BarInfo, SequenceInfo}
+import models.midibuilders.ArrangementConstruction.{BarConstructionAndSequencingData, BarInfo, SequenceInfo}
 import models.Primitives._
 import models._
+import models.barconstructors.PolyphonicScalePhraseBarConstructor
 import util.SequenceTransformers.rotate
 
 import scala.collection.parallel.ParSeq
@@ -23,7 +24,7 @@ object Harmony {
         alternateBarSwing
         clave.copy(hitDurations = List(w, h, q, w, h).map(_*1))
       }.rotateVelocities(barNum) //hit a punctuation every 6
-      val barConstructor = PolyphonicScalePhraseBarConstructor(PolyphonicScalePhrase(pp), rhythm).controlRandom()
+      val barConstructor = PolyphonicScalePhraseBarConstructor(PolyphonicScalePhrase(pp), rhythm).controlTest()
       BarInfo(barConstructor, barConstructor, s)
     })
 

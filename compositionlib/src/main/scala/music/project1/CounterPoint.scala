@@ -1,9 +1,11 @@
 package music.project1
 
-import models.ArrangementConstruction.{BarConstructionAndSequencingData, BarInfo}
-import models.{NoteFinder, PolyphonicScalePhrase, PolyphonicScalePhraseBarConstructor, ScalePhrase}
+import models.midibuilders.ArrangementConstruction.{BarConstructionAndSequencingData, BarInfo}
+import models.{PolyphonicScalePhrase, ScalePhrase, barconstructors}
 import models.Primitives.Direction
+import models.barconstructors.PolyphonicScalePhraseBarConstructor
 import music.project1.Runner.scanSeed
+import util.NoteFinder
 
 object CounterPoint {
 
@@ -53,7 +55,7 @@ object CounterPoint {
 
       val newPhrases = List(ScalePhrase(List(fixedIntervalFromRoot), scale))
       val newRhythm = b.oldConstructor.rhythm.take(1)
-      val newConstructor = PolyphonicScalePhraseBarConstructor(PolyphonicScalePhrase(newPhrases), newRhythm)
+      val newConstructor = barconstructors.PolyphonicScalePhraseBarConstructor(PolyphonicScalePhrase(newPhrases), newRhythm)
       BarInfo(b.oldConstructor, newConstructor, b.sequenceInfo)
     }).tail
       .scanRight(scanSeed)((a, b) => {

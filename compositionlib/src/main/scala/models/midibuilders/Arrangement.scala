@@ -1,9 +1,9 @@
-package models
+package models.midibuilders
 
 import instruments.Instrument
-import midi.DevicesNames.DeviceName
-import models.ArrangementConstruction.BarConstructionAndSequencingData
-import models.ControlSequences.CCBarConstructor
+import models.barconstructors.CCBarConstructor
+import models.midibuilders
+import models.midibuilders.ArrangementConstruction.BarConstructionAndSequencingData
 
 case class Track(bars: Seq[Bar], instrument: Instrument, joinNeighbours: Boolean = false)
 case class VoiceJoining(expand: Boolean, join: Boolean)
@@ -37,7 +37,7 @@ object Arrangement {
       val polyBarConstructor = c.newConstructor
 
       val bar = if (expand) {
-          Bar(polyBarConstructor.copy(rhythm = polyBarConstructor.rhythm.expandDurations()), instrument)
+          midibuilders.Bar(polyBarConstructor.copy(rhythm = polyBarConstructor.rhythm.expandDurations()), instrument)
       } else Bar(polyBarConstructor, instrument)
 
       polyBarConstructor.controlBarConstructor match {
@@ -46,7 +46,7 @@ object Arrangement {
       }
     })
 
-    val barSequence = List(Track(bars, instrument, join))
+    val barSequence = List(midibuilders.Track(bars, instrument, join))
 
     Arrangement(barSequence)
 

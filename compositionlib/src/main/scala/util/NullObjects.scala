@@ -4,6 +4,8 @@ import instruments.Instrument
 import models.Primitives.{MessagePair, MessagePairWithTimestamp, MidiNote}
 import models.Scales.CMaj
 import models._
+import models.barconstructors.PolyphonicScalePhraseBarConstructor
+import models.midibuilders.Bar
 
 object NullObjects {
   //Use these for seeding a fold/scan/reduce

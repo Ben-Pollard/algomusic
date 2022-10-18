@@ -2,8 +2,8 @@ package midi
 
 import midi.Devices.{getOutputDevice, getSequencerDevice}
 import midi.DevicesNames.DeviceName
-import models.Arrangement
 import models.Primitives._
+import models.midibuilders.Arrangement
 import java.io.File
 import javax.sound
 import javax.sound.midi._

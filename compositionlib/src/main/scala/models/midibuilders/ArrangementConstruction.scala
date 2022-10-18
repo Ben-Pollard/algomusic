@@ -1,6 +1,7 @@
-package models
+package models.midibuilders
 
 import models.Primitives.ScaleDegree
+import models.barconstructors.PolyphonicScalePhraseBarConstructor
 
 object ArrangementConstruction {
 

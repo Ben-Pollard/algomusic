@@ -1,7 +1,10 @@
-package models
+package models.midibuilders
+
 import enums.DrumNames
-import instruments.{Drum, Instrument}
+import instruments.{DrumKit, Instrument}
 import models.Primitives.{MidiNote, MidiPitch, NoteRest, Voice}
+import models._
+import models.barconstructors.{PolyphonicScalePhraseBarConstructor, ScalePhraseBarConstructor}
 import transformers.BarTransformers
 
 //A bar returns a sequence of sequences of notes, to be played in parallel
@@ -45,7 +48,7 @@ object Bar {
   }
 
 
-  def apply(drum: DrumNames.Value, rhythm: Rhythm, instrument: Drum): Bar = {
+  def apply(drum: DrumNames.Value, rhythm: Rhythm, instrument: DrumKit): Bar = {
     val midiPitch: MidiPitch = instrument.midiPitchMap.get(drum).get
     val pitches = List.fill(rhythm.hitDurations.length)(midiPitch)
     apply(pitches, rhythm, instrument)

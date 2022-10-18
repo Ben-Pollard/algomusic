@@ -1,8 +1,7 @@
 package models
 
 import instruments.TonalInstrument
-import midi.FLStudioMIDIMap.PitchName
-import models.Primitives.{MidiPitch, ScaleDegree, Tone, midiRange}
+import models.Primitives.{MidiPitch, PitchName, ScaleDegree, Tone}
 
 //SCALE
 case class Scale(pitches: Seq[MidiPitch], root: MidiPitch, degreeMap: Map[ScaleDegree, MidiPitch], pattern: Seq[Tone], instrument: TonalInstrument) {

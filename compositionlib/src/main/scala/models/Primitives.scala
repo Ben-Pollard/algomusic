@@ -18,6 +18,9 @@ object Primitives {
   type MidiPitch = Int
   val midiRange: Seq[MidiPitch] = 0 to 127
 
+  // C0, C#0, .. C1 etc
+  type PitchName = String
+
   type Tone = Int
   val semiTone: Tone = 1
   val tone: Tone = 2

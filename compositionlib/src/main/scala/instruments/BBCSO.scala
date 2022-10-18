@@ -2,8 +2,7 @@ package instruments
 
 import midi.DevicesNames.LOOP_MIDI_PORT
 import midi.FLStudioMIDIMap
-import midi.FLStudioMIDIMap.PitchName
-import models.Primitives.MidiPitch
+import models.Primitives.{MidiPitch, PitchName}
 
 abstract class BBCSO extends TonalInstrument {
   val port = LOOP_MIDI_PORT
@@ -34,8 +33,6 @@ case class Oboes(voices: Int) extends BBCSO {
 
 case class Harp(voices: Int, lowestNoteName: String, highestNoteName: String) extends BBCSO {
   val channel = 7
-//  val lowestNoteName = "C3"
-//  val highestNoteName = "G9"
   assert(lowestPitch >= midiMap().get("C3").get)
   assert(highestPitch <= midiMap().get("G9").get)
 }

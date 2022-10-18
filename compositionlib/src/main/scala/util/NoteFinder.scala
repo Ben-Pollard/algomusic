@@ -1,9 +1,7 @@
-package models
+package util
 
-import enums.Interval.Interval
 import models.Primitives._
-
-
+import models.Scale
 
 object NoteFinder {
 
@@ -17,7 +15,7 @@ object NoteFinder {
 
   def stepToDegree(direction: Direction, directFrom: ScaleDegree, degreesFrom: ScaleDegree, degreeDiff: Int, scale: Scale): ScaleDegree = {
     val targetDegree = degreesFrom + degreeDiff
-    val possibleDegrees = (-10 to 10 ).map(i => targetDegree + (i * scale.pattern.size))
+    val possibleDegrees = (-10 to 10).map(i => targetDegree + (i * scale.pattern.size))
 
     direction match {
       case UP => possibleDegrees.filter(_ > directFrom).min

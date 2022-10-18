@@ -1,9 +1,8 @@
-package models
+package models.midibuilders
 
 import instruments.Instrument
-import models.ControlSequences.CCBarConstructor
 import models.Primitives.{CCRest, MidiCC}
-
+import models.barconstructors.CCBarConstructor
 
 object ControlBar {
 
@@ -15,10 +14,12 @@ object ControlBar {
     assert(midiCCValues.length == rhythm.hitIndices.length)
     assert(rhythm.durations.filter(_.isLeft).length == midiCCValues.length)
 
-    val onNotes = midiCCValues zip rhythm.durations.filter(_.isLeft) map { n => MidiCC(
-      duration = n._2.left.get,
-      number = midiCCNum,
-      value = Some(n._1)) }
+    val onNotes = midiCCValues zip rhythm.durations.filter(_.isLeft) map { n =>
+      MidiCC(
+        duration = n._2.left.get,
+        number = midiCCNum,
+        value = Some(n._1))
+    }
 
     val rests = rhythm.durations.filter(_.isRight).map(r => CCRest(r.right.get))
 
@@ -26,7 +27,7 @@ object ControlBar {
 
     //correct any rounding errors in duration
     val roundingError = notes.map(_.duration).sum.round - notes.map(_.duration).sum
-    val roundedNotes = notes.zipWithIndex.map(n => if (n._2== notes.length/2) n._1.copy(duration = n._1.duration + roundingError) else n._1)
+    val roundedNotes = notes.zipWithIndex.map(n => if (n._2 == notes.length / 2) n._1.copy(duration = n._1.duration + roundingError) else n._1)
 
 
     Bar(roundedNotes :: Nil, instrument)

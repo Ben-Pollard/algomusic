@@ -5,7 +5,7 @@
 //import models.ControlSignals._
 //import models.Scales._
 //import generators.RhythmGenerators._
-//import models.Bar.ParallelBarSequences
+//import models.midibuilders.Bar.ParallelBarSequences
 //import models.NoteSequences.ScalePhrase
 //import models.{Bar, BarSequence, NoteSequences, Scale}
 //import transformers.MelodyTransformers.{invert, transpose}

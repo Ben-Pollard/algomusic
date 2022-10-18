@@ -1,6 +1,6 @@
 package transformers
 
-import models.{AbstractBar, Bar}
+import models.midibuilders.{AbstractBar, Bar}
 
 trait BarTransformers extends AbstractBar {
   def +(bar: Bar): Bar = {
