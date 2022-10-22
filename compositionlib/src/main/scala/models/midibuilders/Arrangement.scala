@@ -34,7 +34,7 @@ object Arrangement {
     }
 
     val bars = barConstructionAndSequencingData.map( c => {
-      val polyBarConstructor = c.newConstructor
+      val polyBarConstructor = c.constructor
 
       val bar = if (expand) {
           midibuilders.Bar(polyBarConstructor.copy(rhythm = polyBarConstructor.rhythm.expandDurations()), instrument)

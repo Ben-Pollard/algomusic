@@ -9,7 +9,7 @@ object ControlBar {
   //constructor for bar of control values
   def apply(constructor: CCBarConstructor, instrument: Instrument): Bar = {
 
-    val (midiCCNum, midiCCValues, rhythm) = (constructor.midiCCNum.id, constructor.midiCCValues, constructor.rhythm)
+    val (midiCCNum, midiCCValues, rhythm) = (constructor.midiCCNum, constructor.midiCCValues, constructor.rhythm)
 
     assert(midiCCValues.length == rhythm.hitIndices.length)
     assert(rhythm.durations.filter(_.isLeft).length == midiCCValues.length)

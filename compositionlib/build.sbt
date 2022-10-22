@@ -12,11 +12,12 @@ lazy val hello = (project in file("."))
     name := "Hello",
     fork := true,
     libraryDependencies ++= Seq(
-      "com.googlecode.soundlibs" % "tritonus-all" % "0.3.7.2",
+//      "com.googlecode.soundlibs" % "tritonus-all" % "0.3.7.2",
       "org.hipparchus" % "hipparchus-optim" % "1.8",
       "com.github.psambit9791" % "jdsp" % "2.0.0",
       "org.plotly-scala" %% "plotly-core" % "0.8.3",
-      "org.plotly-scala" %% "plotly-render" % "0.8.3"
+      "org.plotly-scala" %% "plotly-render" % "0.8.3",
+      "org.scalanlp" %% "breeze" % "2.1.0"
     )
   )
 

@@ -1,31 +1,40 @@
 package music.project1
 
+import breeze.linalg.{DenseMatrix, SliceMatrix}
+import enums.DrumNames._
 import enums.MidiNoteNames
+import generators.Meter.{allSubdivisions, theOne}
 import generators.RhythmGenerators.generateBjorklundSequence
-import instruments.{Harp, TonalInstrument, Violins1}
+import instruments._
 import midi.Sequencer
-import models.midibuilders.ArrangementConstruction.{BarInfo, SequenceInfo}
 import models.Primitives.q
-import models.Scales.modeNumberMap
-import models.midibuilders.{Arrangement, VoiceJoining}
-import models.{Rhythm, Scale}
+import models.{PolyphonicScalePhrase, Scale}
+import models.Scales.{getModeByNumber, modeNumberMap}
+import models.barconstructors.PolyphonicScalePhraseBarConstructor
+import models.midibuilders.ArrangementConstruction.{BarInfo, SequenceInfo}
+import models.midibuilders.{Arrangement, Bar, ControlBar, Track, VoiceJoining}
 import util.NullObjects.nullPolyphonicScalePhraseBarConstructor
+
+import scala.collection.immutable
+import scala.collection.parallel.ParSeq
 
 object Runner extends App {
 
   val startTimeMillis = System.currentTimeMillis()
 
-  case class Project1SharedData(clave: Rhythm, scale: Scale, chordRoots: List[Int], chordDegrees: List[Int], sequenceIndices: List[List[SequenceInfo]])
+  val nullSequenceInfo = List(SequenceInfo(0, 0, 0))
+  val nullmatrix = DenseMatrix(List(0.0)).t
+  val nullslicer = nullmatrix(::,0) :== 0.0
+  val nullslicematrix = nullmatrix(nullslicer, ::)
+  val scanSeed = BarInfo(nullPolyphonicScalePhraseBarConstructor(0), nullslicematrix)
 
-  val clave = generateBjorklundSequence(16, 5, hitDuration = q, List(100, 75, 65, 90, 75)).steps2Subdivisions(4)
+    val clave = generateBjorklundSequence(16, 5, hitDuration = q, List(100, 75, 65, 90, 75)).steps2Subdivisions(4)
   clave.info()
 
 //  val circleOfFifths = List(1, 4, 7, 2, 5, 8, 3, 6).map(_ - 1)
   val chordRoots = List(1, 3 - 8, 6 - 8, 7 - 8, 5 - 8).map(_ - 1)
   val chordDegrees = List(1, 3, 5).map(_ - 1)
 
-  val nullSequenceInfo = List(SequenceInfo(0, 0, 0))
-  val scanSeed = BarInfo(nullPolyphonicScalePhraseBarConstructor(0), nullPolyphonicScalePhraseBarConstructor(0), nullSequenceInfo)
 
   val sequenceIndices = chordRoots //5 notes in rhythm. change chords every 4
     .map(r => List.fill(4)(r))
@@ -36,34 +45,56 @@ object Runner extends App {
     .map(i => i._1.zip(List.fill(i._1.length)(i._2)).map(j => SequenceInfo(j._1._1, j._1._2, j._2)))
     .toList.par
 
-//  val sd = Project1SharedData(clave, scale, chordRoots, chordDegrees, sequenceIndices)
-
   // construct a base harmony across the midi range
   // then adapt it for each instrument
   def scale(instrument: TonalInstrument) = {
-    Scale(modeNumberMap.get(3).get, MidiNoteNames.D.id, instrument)
+    Scale(getModeByNumber(3), MidiNoteNames.D.id, instrument)
   }
 
+//  val baseHarmony = BaseHarmony(clave, scale(DefaultInstrument(0, 8, "C3", "B3")), chordRoots, chordDegrees, sequenceIndices)
+  val baseHarmony = BaseHarmonyFromControlMatrix(scale(DefaultInstrument(0, 8, "C3", "B3")))
+
+
   val harp = Harp(6, "C3", "G7") // restricting the note range reduces voicing permutation overhead
-  val harpHarmony = Harmony(clave, scale(harp), chordRoots, chordDegrees, sequenceIndices) //todo contruct based on base harmony
+  val harpHarmony = RevoiceWithLeading(scale(harp), baseHarmony)
   val harmonicRhythmArrangement = Arrangement(harpHarmony, harp)
 
-  val padHarmony = Harmony(clave, scale(Violins1(8)), chordRoots, chordDegrees, sequenceIndices) //todo contruct based on base harmony
-  val padArrangement = Arrangement(padHarmony, Violins1(8), Some(VoiceJoining(expand = true, join = true)))
+  val violin = Violin(8)
+  val padHarmony = RevoiceWithLeading(scale(violin), baseHarmony)
+  val padArrangement = Arrangement(padHarmony, violin, Some(VoiceJoining(expand = true, join = true)))
 
-//  val fluteHarmony = Harmony(clave, scale(Flutes(3)), chordRoots, chordDegrees, sequenceIndices) //todo contruct based on base harmony
-//  val melodyArrangement = Arrangement(Melody(fluteHarmony), Flutes(1))
+  val kit = LabsDrums
+  val drums = baseHarmony.map(bar => {
+    val chordIndices = bar.controlData(::,1).toScalaVector.map(_.toInt).toList
+    val durations = bar.controlData(::,2).toScalaVector
+    val velocities = bar.controlData(::,3).toScalaVector.map(_.toInt)
+
+    val sixteenths = allSubdivisions(4,8)
+    Bar(KICK, theOne(4,4), kit) +
+//      Bar(HHC, allSubdivisions(4,3), kit) +
+    Bar(SNARE, theOne(4,4).rotate(1), kit) +
+    Bar(HHP, bar.constructor.rhythm, kit) + // this is the 5/16
+      Bar(HHC, sixteenths.subtract(bar.constructor.rhythm), kit) +
+//    Bar(HHO, generateBjorklundSequence(16,9).setBeatsPerBar(4), kit) +
+      ControlBar(bar.constructor.controlBarConstructor.get, kit)
+  })
+  val drumArrangement = Arrangement(List((Track(drums, kit))))
+
+
+
+//  val fluteHarmony = RevoiceWithLeading(scale(Flute(3)), baseHarmony)
+//  val melodyArrangement = Arrangement(Melody(fluteHarmony), Flute(1))
 //
-//  val oboeHarmony = Harmony(clave, scale(Oboes(1)), chordRoots, chordDegrees, sequenceIndices) //todo contruct based on base harmony
-//  val counterPointArrangement = Arrangement(CounterPoint(oboeHarmony), Oboes(1))
+//  val oboeHarmony = RevoiceWithLeading(scale(Oboe(3)), baseHarmony)
+//  val counterPointArrangement = Arrangement(CounterPoint(oboeHarmony), Oboe(1))
 
   val endTimeMillis = System.currentTimeMillis()
   val durationSeconds = (endTimeMillis - startTimeMillis)
-  println(s"Built arrangement in ${durationSeconds}ms")
+  println(s"Built Arrangement in ${durationSeconds}ms")
 
-//  Sequencer(harmonicRhythmArrangement).play(60)
-  Sequencer(padArrangement ++ harmonicRhythmArrangement).play(60)
-//  Sequencer(padArrangement ++ harmonicRhythmArrangement ++ melodyArrangement ++ counterPointArrangement).play(60, repeat = 1)
+
+  Sequencer(padArrangement ++ harmonicRhythmArrangement ++ drumArrangement).play(60)
+//  Sequencer(padArrangement ++ harmonicRhythmArrangement ++ melodyArrangement ++ counterPointArrangement).play(60)
 
   // todo
   // CC
@@ -84,12 +115,8 @@ object Runner extends App {
   // timbre - research and map to plugins
 
   // ## Track structure
-  // Data structure for metadata, e.g. matrix, dataframe
-  // Visualise
-  // Map existing structure based on loops to the data structure
-  // Define parameters - tension/release, emphasis - do some research
-  // Map control data to metastructure
-  // Combine internal bar dynamics with metastructure and map to expression / articulation control
+  // Modify cc data based on metastructure
+
 
   // ## Music driver
   // Boringness analyser - see notebook

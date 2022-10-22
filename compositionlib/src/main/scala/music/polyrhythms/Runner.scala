@@ -4,14 +4,14 @@ import enums.DrumNames._
 import enums.MidiNoteNames
 import generators.Meter.theOne
 import generators.RhythmGenerators
+import instruments.CC_FPC.{FILTER_CUTOFF, HHC_ATTACK, HHC_DECAY, HHC_RELEASE, HHC_SUSTAIN, HHO_ATTACK, HHO_DECAY, HHO_RELEASE, HHO_SUSTAIN, KICK_ATTACK, KICK_DECAY, KICK_RELEASE, KICK_SUSTAIN}
 import instruments.{DefaultInstrument, FPC}
-import midi.MidiControlNumbers._
 import midi.Sequencer
 import models.Primitives._
 import models.Scales.modeNumberMap
-import models.midibuilders.{Arrangement, Bar, ControlBar, Track}
-import models.{barconstructors, _}
+import models._
 import models.barconstructors.{CCBarConstructor, PolyphonicScalePhraseBarConstructor}
+import models.midibuilders.{Arrangement, Bar, ControlBar, Track}
 import util.NullObjects.emptyRhythm
 import util.Util.{lowestCommonMultiple, possibleTimeSigs, scaleToByte}
 
@@ -69,25 +69,25 @@ object Runner extends App {
   val numBars = lowestCommonMultiple(List(6,7))
   val scaleBarNumToByte = (n: Int) => scaleToByte(numBars, n)
 
-  val kickControl = ControlBar(CCBarConstructor(midiCCNum = KICK_ATTACK, List(0), rhythms_4_3(1)), FPC) +
-    midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = KICK_DECAY, List(64), rhythms_4_3(1)), FPC) +
-      midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = KICK_SUSTAIN, List(64), rhythms_4_3(1)), FPC) +
-        midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = KICK_RELEASE, List(64), rhythms_4_3(1)), FPC)
+  val kickControl = ControlBar(CCBarConstructor(midiCCNum = KICK_ATTACK.id, List(0), rhythms_4_3(1)), FPC) +
+    midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = KICK_DECAY.id, List(64), rhythms_4_3(1)), FPC) +
+      midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = KICK_SUSTAIN.id, List(64), rhythms_4_3(1)), FPC) +
+        midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = KICK_RELEASE.id, List(64), rhythms_4_3(1)), FPC)
 
-  val hhoControl = midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHO_ATTACK, List(0), rhythms_4_3(1)), FPC) +
-    midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHO_DECAY, List(64), rhythms_4_3(1)), FPC) +
-      midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHO_SUSTAIN, List(64), rhythms_4_3(1)), FPC) +
-        midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHO_RELEASE, List(64), rhythms_4_3(1)), FPC)
+  val hhoControl = midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHO_ATTACK.id, List(0), rhythms_4_3(1)), FPC) +
+    midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHO_DECAY.id, List(64), rhythms_4_3(1)), FPC) +
+      midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHO_SUSTAIN.id, List(64), rhythms_4_3(1)), FPC) +
+        midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHO_RELEASE.id, List(64), rhythms_4_3(1)), FPC)
 
-  val hhcControl = midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHC_ATTACK, List(0), rhythms_4_3(1)), FPC) +
-    midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHC_DECAY, List(64), rhythms_4_3(1)), FPC) +
-      midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHC_SUSTAIN, List(64), rhythms_4_3(1)), FPC) +
-        midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHC_RELEASE, List(64), rhythms_4_3(1)), FPC)
+  val hhcControl = midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHC_ATTACK.id, List(0), rhythms_4_3(1)), FPC) +
+    midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHC_DECAY.id, List(64), rhythms_4_3(1)), FPC) +
+      midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHC_SUSTAIN.id, List(64), rhythms_4_3(1)), FPC) +
+        midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHC_RELEASE.id, List(64), rhythms_4_3(1)), FPC)
 
-  val pianoControl = midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = FILTER_CUTOFF, List(127), rhythms_4_3(1)), FPC)
+  val pianoControl = midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = FILTER_CUTOFF.id, List(127), rhythms_4_3(1)), FPC)
 
 
-  var scale = Scale(modeNumberMap.get(3).get, MidiNoteNames.D.id, DefaultInstrument(0,0))
+  var scale = Scale(modeNumberMap.get(3).get, MidiNoteNames.D.id, DefaultInstrument(0,0, "C3", "C5"))
   val chordRoots = List(1, 3 - 8, 6 - 8, 7 - 8, 5 - 8).map(_ - 1)
   val chordDegrees = List(1, 3, 5).map(_ - 1)
 
@@ -104,7 +104,7 @@ object Runner extends App {
 //    val kick = Bar(KICK, theOne(beats,subDivsPerBeat)) + kickControl
     val kick = midibuilders.Bar(KICK, rhythms_4_3(4), FPC) + kickControl
     val hho = Bar(HHO, rhythms_4_3(1).rotate(3,3), FPC) + hhoControl
-    val hhc = midibuilders.Bar(HHC, poly_4_3.dynamics(64,127), FPC) + midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHC_DECAY, poly_4_3.dynamics(10,64).velocities.toList, poly_4_3), FPC)
+    val hhc = midibuilders.Bar(HHC, poly_4_3.dynamics(64,127), FPC) + midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHC_DECAY.id, poly_4_3.dynamics(10,64).velocities.toList, poly_4_3), FPC)
     val hhp = midibuilders.Bar(HHP, poly_4_3, FPC)
     val sn = midibuilders.Bar(SNARE, theOne(beats,subDivsPerBeat).rotate(2), FPC)
 
@@ -123,7 +123,7 @@ object Runner extends App {
   //build and release tension
   //control note length
   //use control signals to drive a filter
-  val pianoInstrument = DefaultInstrument(2, 10)
+  val pianoInstrument = DefaultInstrument(2, 10, "C2", "C5")
 
   val piano = (1 to numBars toList).map(barNum => {
     val rhythm = (rhythms_4_3(barNum % rhythms_4_3.size) + rhythms_4_3((barNum-1) % rhythms_4_3.size)).dynamics(60, 100)
@@ -132,7 +132,7 @@ object Runner extends App {
     val controlValue = ((barNum%2) + 1)*63
     println(s"Control value: $controlValue")
     val controlMessages = List.fill(rhythm.hitIndices.length)(controlValue)
-    val controlBar = midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = FILTER_CUTOFF, controlMessages, rhythm), pianoInstrument)
+    val controlBar = midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = FILTER_CUTOFF.id, controlMessages, rhythm), pianoInstrument)
     val barConstructor = barconstructors.PolyphonicScalePhraseBarConstructor(PolyphonicScalePhrase(pp), rhythm)
     midibuilders.Bar(barConstructor, pianoInstrument) + controlBar
   })

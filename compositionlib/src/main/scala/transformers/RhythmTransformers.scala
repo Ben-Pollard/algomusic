@@ -2,7 +2,7 @@ package transformers
 
 import models.Primitives.{Duration, Velocity}
 import models.{AbstractRhythm, Rhythm}
-import util.SequenceTransformers
+import util.{SequenceTransformers, Util}
 import util.Util.{idxTuple2SubIdx, subIdx2Tuple}
 
 trait RhythmTransformers extends AbstractRhythm {
@@ -76,7 +76,7 @@ trait RhythmTransformers extends AbstractRhythm {
     //move every other hit forward
     val newSubdivisions = rhythm.subdivisions * subdivisionMultiple
     val newSteps = rhythm.beats * newSubdivisions
-    val addedSteps = rhythm.addSubdivisions(newSubdivisions)
+    val addedSteps = rhythm.expandSubdivisions(newSubdivisions)
     val swungIndices = subIdx2Tuple(idxTuple2SubIdx(addedSteps.hitIndices, newSubdivisions).map(i => (if ((i / subdivisionMultiple) % 2==0) i else i+1) % newSteps), newSubdivisions)
     Rhythm(rhythm.beats, newSubdivisions, swungIndices, rhythm.hitDurations, rhythm.velocities)
   }
@@ -95,12 +95,20 @@ trait RhythmTransformers extends AbstractRhythm {
   //    shift(rhythm, wholeSteps, 0)
   //  }
 
-  def subtractFromFilled(rhythm: Rhythm): Rhythm = {
-    val flatIndices = idxTuple2SubIdx(rhythm.hitIndices, rhythm.subdivisions).toSet
-    val invertedIndices = subIdx2Tuple((0 until rhythm.beats * rhythm.subdivisions).filter(i => !(flatIndices contains i)), rhythm.subdivisions)
-    val hitDurations = invertedIndices.map(i => 1.0 / rhythm.subdivisions)
-    val velocities = List.fill(hitDurations.length)(100)
-    Rhythm(rhythm.beats, rhythm.subdivisions, invertedIndices, hitDurations, velocities)
+  def subtract(rhythm: Rhythm): Rhythm = {
+    assert(beats == rhythm.beats)
+    val lcm = Util.lowestCommonMultiple(List(subdivisions, rhythm.subdivisions))
+    val thisLcm = this.expandSubdivisions(lcm)
+    val thatLcmIndices = rhythm.expandSubdivisions(lcm).hitIndices.toSet
+    val matches = thisLcm.hitIndices.map(i => thatLcmIndices.contains(i))
+    Rhythm(
+      beats,
+      lcm,
+      (thisLcm.hitIndices zip matches).filterNot(_._2).map(_._1),
+      (thisLcm.hitDurations zip matches).filterNot(_._2).map(_._1),
+      (thisLcm.velocities zip matches).filterNot(_._2).map(_._1)
+    )
+      .compressSubdivisions(subdivisions)
   }
 
   def setBeatsPerBar(newBeats: Int): Rhythm = {
@@ -145,11 +153,20 @@ trait RhythmTransformers extends AbstractRhythm {
     Rhythm(newBeats, newSubdivisions, newIndices, hitDurations, velocities)
   }
 
-  def addSubdivisions(newSubdivisions: Int) = {
+  def expandSubdivisions(newSubdivisions: Int) = {
     val newStepCount = newSubdivisions * beats
     assert(newStepCount % (beats * subdivisions) == 0)
     val flattenedIndices = idxTuple2SubIdx(hitIndices, subdivisions)
     val newIndices = subIdx2Tuple(flattenedIndices.map(i => i * newSubdivisions / subdivisions), newSubdivisions)
     Rhythm(beats, newSubdivisions, newIndices, hitDurations, velocities)
+  }
+
+  def compressSubdivisions(newSubdivisions: Int) = {
+    val keep1InN = subdivisions / newSubdivisions
+    val flattenedIndices = idxTuple2SubIdx(hitIndices, subdivisions)
+    val matches = flattenedIndices.map(_%keep1InN==0)
+    val filteredIndices = flattenedIndices.zip(matches).filter(_._2).map(_._1 / keep1InN)
+    val newHitIndices = subIdx2Tuple(filteredIndices, newSubdivisions)
+    Rhythm(beats, newSubdivisions, newHitIndices, hitDurations, velocities)
   }
 }

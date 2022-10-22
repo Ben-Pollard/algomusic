@@ -1,7 +1,7 @@
-package midi
+package enums
 
-object MidiControlNumbers extends Enumeration {
-  type CCNum = Value
+trait MidiControlNumbers extends Enumeration {
+//  type CCNum = Value
   val BANK_SELECT = Value(0)
   val MODULATION_WHEEL_OR_LEVER = Value(1)
   val BREATH_CONTROLLER = Value(2)

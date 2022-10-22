@@ -4,9 +4,11 @@ import enums.DrumNames._
 import generators.Meter.{allSubdivisions, beatIndices, onBeats, theOne}
 import generators.RhythmGenerators
 import instruments.FPC
-import models.{midibuilders, _}
+import models.midibuilders.ArrangementConstruction.SequenceInfo
 import models.midibuilders.{Arrangement, Bar, Track}
-import music.project1.Runner.Project1SharedData
+import models._
+
+case class Project1SharedData(clave: Rhythm, scale: Scale, chordRoots: List[Int], chordDegrees: List[Int], sequenceIndices: List[List[SequenceInfo]])
 
 object DrumPattern {
 

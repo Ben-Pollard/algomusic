@@ -1,44 +1,41 @@
-import com.github.psambit9791.jdsp.signal.Generate
-import models.ControlSignal
-import plotly.Plotly.TraceOps
+import breeze.linalg.{DenseMatrix, DenseVector}
+import models.Primitives.{h, q, w}
+import util.Util.lowestCommonMultiple
 
-// todo investigate using adsr parameters
-// step 1: plot log function
+import scala.collection.immutable.List
 
-case class ControlSignal(s: Vector[Double]) {
+val notesPerBar = 5
+val chordChangeEach = 4
+//val velocityPattern = 6
 
-  def scaleToByte() = {
-    val (min, max) = (s.min, s.max)
-    s.map(i => (127 * ((i - min) / (max - min))).toInt)
-  }
+val durationPattern: List[Double] = List(w, h, q, w, h)
+val velocityPattern: List[Double] = List(100, 75, 65, 90, 75, 85)
 
-  def scaleToRange(minTo: Int, maxTo: Int): Vector[Int] = {
-    val (min, max) = (s.min, s.max)
-    s.map(i => (minTo + ((maxTo - minTo) * ((i - min) / (max - min)))).toInt)
-  }
+val lcm = lowestCommonMultiple(List(notesPerBar,chordChangeEach,durationPattern.size, velocityPattern.size))
 
-  def getTimeIndex() = {
-    (0 until s.size).toVector
-  }
-}
 
-object ControlSignal {
+val barIndex = (for (i <- 1 to lcm/notesPerBar) yield {
+  for (j <- 1 to notesPerBar) yield i.toDouble
+}).flatten.toArray
 
-  def apply(signalLength: Int): ControlSignal = {
-    val signal = new Generate(0, 1, signalLength)
-//      .generateSineWave(1)
-      .generateRicker(1, 1.0)
-      .toVector
-    assert(signal.size == signalLength)
+val chordIndex = (for (i <- 1 to lcm/chordChangeEach) yield {
+   for (j <- 1 to chordChangeEach) yield i.toDouble
+}).flatten.toArray
 
-    ControlSignal(signal)
-  }
+val velocities = (for (i <- 1 to lcm/velocityPattern.size) yield {
+  velocityPattern
+}).flatten.toArray
 
-}
+val durations = (for (i <- 1 to lcm/durationPattern.size) yield {
+  durationPattern
+}).flatten.toArray
 
-val signal = ControlSignal(100)
+val driverMatrix = DenseMatrix(barIndex, chordIndex, durations, velocities).t
 
-plotly
-  .Bar(signal.getTimeIndex, signal.scaleToByte)
-  .plot(path = "D:\\temp\\plot.html", openInBrowser=true)
+val barIndex = 2.0
+val slicer = driverMatrix(::,0) :== barIndex
+driverMatrix(slicer, ::)
 
+val nullmatrix = DenseMatrix(List(0.0)).t
+val nullslicer = nullmatrix(::,0) :== 0.0
+val nullslicematrix = nullmatrix(nullslicer, ::)

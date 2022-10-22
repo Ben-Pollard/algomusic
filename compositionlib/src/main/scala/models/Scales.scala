@@ -16,8 +16,12 @@ object Scales {
 
   val modeNumberMap: Map[Int, Seq[Tone]] = modeNameMap.map(m => (m._1.id, m._2))
 
+  def getModeByNumber(modeNumber: Int) = {
+    modeNumberMap.get(modeNumber).get
+  }
 
-  val CMaj = Scale(majorScalePattern, MidiNoteNames.C.id, DefaultInstrument(0,0))
+
+  val CMaj = Scale(majorScalePattern, MidiNoteNames.C.id, DefaultInstrument(0,0, "C0", "C10"))
 
 
 }

@@ -14,6 +14,8 @@ abstract class TonalInstrument extends Instrument {
   val midiMap: () => Map[PitchName, MidiPitch]
   val lowestPitch: MidiPitch
   val highestPitch: MidiPitch
+
+  object CC
 }
 
 abstract class DrumKit extends Instrument {

@@ -1,6 +1,6 @@
 package enums
 
-import models.Primitives.{Octave, ScaleDegree, Tone}
+import models.Primitives.{Octave, Tone}
 
 object Interval {
 

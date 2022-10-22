@@ -1,6 +1,6 @@
 package models
 
-import instruments.TonalInstrument
+import instruments.{BBCSO, TonalInstrument}
 import models.Primitives.{MidiPitch, PitchName, ScaleDegree, Tone}
 
 //SCALE
@@ -28,7 +28,7 @@ case class Scale(pitches: Seq[MidiPitch], root: MidiPitch, degreeMap: Map[ScaleD
 }
 
 object Scale {
-  def apply(pattern: Seq[Tone], root: MidiPitch, instrument: TonalInstrument): Scale = {
+  def apply[I](pattern: Seq[Tone], root: MidiPitch, instrument: TonalInstrument): Scale = {
     assert(pattern.sum==12)
 
     val degreeMap: Map[ScaleDegree, MidiPitch] = Seq.fill(10)(pattern.scanLeft(0)(_+_).dropRight(1).map(_+root))
