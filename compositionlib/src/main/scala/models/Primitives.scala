@@ -4,6 +4,10 @@ import javax.sound.midi.ShortMessage
 
 object Primitives {
 
+  // PHYSICS
+  type Amplitude = Double
+  type Frequency = Double
+
   type MidiCCValue = Int
   type MidiCCNum = Int
 

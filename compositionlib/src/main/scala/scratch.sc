@@ -1,41 +1,49 @@
-import breeze.linalg.{DenseMatrix, DenseVector}
-import models.Primitives.{h, q, w}
-import util.Util.lowestCommonMultiple
+import optimisation.consonancemetrics.DissonanceCurve.{dissmeasure, getDissonanceOfPitchNames}
+import plotly._
+import Plotly._
+import optimisation.consonancemetrics.Roughness.getRoughnessOfPitchNames
+import optimisation.consonancemetrics.Harmonicity.getHarmonicityOfPitchNames
+import optimisation.Spectrum
+import optimisation.consonancemetrics.CombinedConsonance.getConsonanceOfPitchNames
 
-import scala.collection.immutable.List
+val freq = (1 to 15).map(_*440.0).toArray
+val amp = Array.fill(freq.size)(1.0)
+val range = 10
+val inc=0.01
 
-val notesPerBar = 5
-val chordChangeEach = 4
-//val velocityPattern = 6
+val x = (BigDecimal(1) to BigDecimal(range) by(inc)).map(_.toDouble)
 
-val durationPattern: List[Double] = List(w, h, q, w, h)
-val velocityPattern: List[Double] = List(100, 75, 65, 90, 75, 85)
+val y = x.map(alpha => {
+  val f = freq ++ freq.map(_*alpha)
+  val a = amp ++ amp
+  dissmeasure(Spectrum(f, a))
+})
 
-val lcm = lowestCommonMultiple(List(notesPerBar,chordChangeEach,durationPattern.size, velocityPattern.size))
+
+Scatter(x, y).plot(path = "D:\\temp\\temp.html")
 
 
-val barIndex = (for (i <- 1 to lcm/notesPerBar) yield {
-  for (j <- 1 to notesPerBar) yield i.toDouble
-}).flatten.toArray
+// the velocity of each note in the harmonic is important to the dissonance
+// and that means we need some model of velocity -> amplitude
+// that would be best derived empirically per-patch.
+// there is published work suggesting that a square-root function is popular
 
-val chordIndex = (for (i <- 1 to lcm/chordChangeEach) yield {
-   for (j <- 1 to chordChangeEach) yield i.toDouble
-}).flatten.toArray
+getDissonanceOfPitchNames(List("C3", "B2"))
+getDissonanceOfPitchNames(List("C3", "E3"))
+getDissonanceOfPitchNames(List("C3", "G3"))
+getDissonanceOfPitchNames(List("C3", "E3", "G3"))
 
-val velocities = (for (i <- 1 to lcm/velocityPattern.size) yield {
-  velocityPattern
-}).flatten.toArray
+getRoughnessOfPitchNames(List("C3", "B2"))
+getRoughnessOfPitchNames(List("C3", "E3"))
+getRoughnessOfPitchNames(List("C3", "G3"))
+getRoughnessOfPitchNames(List("C3", "E3", "G3"))
 
-val durations = (for (i <- 1 to lcm/durationPattern.size) yield {
-  durationPattern
-}).flatten.toArray
+getHarmonicityOfPitchNames(List("C3", "B2"))
+getHarmonicityOfPitchNames(List("C3", "E3"))
+getHarmonicityOfPitchNames(List("C3", "G3"))
+getHarmonicityOfPitchNames(List("C3", "E3", "G3"))
 
-val driverMatrix = DenseMatrix(barIndex, chordIndex, durations, velocities).t
-
-val barIndex = 2.0
-val slicer = driverMatrix(::,0) :== barIndex
-driverMatrix(slicer, ::)
-
-val nullmatrix = DenseMatrix(List(0.0)).t
-val nullslicer = nullmatrix(::,0) :== 0.0
-val nullslicematrix = nullmatrix(nullslicer, ::)
+getConsonanceOfPitchNames(List("C3", "B2"))
+getConsonanceOfPitchNames(List("C3", "E3"))
+getConsonanceOfPitchNames(List("C3", "G3"))
+getConsonanceOfPitchNames(List("C3", "E3", "G3"))

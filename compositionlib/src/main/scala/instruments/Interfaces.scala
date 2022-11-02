@@ -1,10 +1,10 @@
 package instruments
 
-import enums.DrumNames
+import enums.{DrumNames, MidiControlNumbers}
 import midi.DevicesNames.DeviceName
 import models.Primitives.{MidiPitch, PitchName}
 
-abstract class Instrument {
+abstract class Instrument extends MidiControlNumbers {
   val channel: Int
   val port: DeviceName
   val voices: Int

@@ -69,13 +69,19 @@ object Runner extends App {
     val durations = bar.controlData(::,2).toScalaVector
     val velocities = bar.controlData(::,3).toScalaVector.map(_.toInt)
 
+    // our metastructure is organised around the harmonic rhythm
+    // rhythmic elements will have differing time signatures
+    // to be useful we need to interpolate signals onto new rhythms
+    // take velocity as an example: interpolating 5 velocities onto a 16-step pattern
+    // we need to know where the hit indices are within the 16 steps
+    // that is defined within the harmonic rhythm generator
+    velocities.length
+
     val sixteenths = allSubdivisions(4,8)
     Bar(KICK, theOne(4,4), kit) +
-//      Bar(HHC, allSubdivisions(4,3), kit) +
     Bar(SNARE, theOne(4,4).rotate(1), kit) +
     Bar(HHP, bar.constructor.rhythm, kit) + // this is the 5/16
       Bar(HHC, sixteenths.subtract(bar.constructor.rhythm), kit) +
-//    Bar(HHO, generateBjorklundSequence(16,9).setBeatsPerBar(4), kit) +
       ControlBar(bar.constructor.controlBarConstructor.get, kit)
   })
   val drumArrangement = Arrangement(List((Track(drums, kit))))
@@ -127,9 +133,9 @@ object Runner extends App {
   // Build chord progressions from metastructure
 
   // ## Rhythm
-  // Simple polyrhythms
-  // Percussive expression (adsr)
   // Rhythmic response to metastructure
+  // Percussive expression (adsr)
+
 
   // ## Instruments
   // Check out Google NSynth

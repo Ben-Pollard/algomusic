@@ -4,8 +4,8 @@ import enums.DrumNames._
 import enums.MidiNoteNames
 import generators.Meter.theOne
 import generators.RhythmGenerators
-import instruments.CC_FPC.{FILTER_CUTOFF, HHC_ATTACK, HHC_DECAY, HHC_RELEASE, HHC_SUSTAIN, HHO_ATTACK, HHO_DECAY, HHO_RELEASE, HHO_SUSTAIN, KICK_ATTACK, KICK_DECAY, KICK_RELEASE, KICK_SUSTAIN}
-import instruments.{DefaultInstrument, FPC}
+import instruments.LabsDrums._
+import instruments.{DefaultInstrument, LabsDrums}
 import midi.Sequencer
 import models.Primitives._
 import models.Scales.modeNumberMap
@@ -69,22 +69,22 @@ object Runner extends App {
   val numBars = lowestCommonMultiple(List(6,7))
   val scaleBarNumToByte = (n: Int) => scaleToByte(numBars, n)
 
-  val kickControl = ControlBar(CCBarConstructor(midiCCNum = KICK_ATTACK.id, List(0), rhythms_4_3(1)), FPC) +
-    midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = KICK_DECAY.id, List(64), rhythms_4_3(1)), FPC) +
-      midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = KICK_SUSTAIN.id, List(64), rhythms_4_3(1)), FPC) +
-        midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = KICK_RELEASE.id, List(64), rhythms_4_3(1)), FPC)
+  val kickControl = ControlBar(CCBarConstructor(midiCCNum = KICK_ATTACK.id, List(0), rhythms_4_3(1)), LabsDrums) +
+    midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = KICK_DECAY.id, List(64), rhythms_4_3(1)), LabsDrums) +
+      midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = KICK_SUSTAIN.id, List(64), rhythms_4_3(1)), LabsDrums) +
+        midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = KICK_RELEASE.id, List(64), rhythms_4_3(1)), LabsDrums)
 
-  val hhoControl = midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHO_ATTACK.id, List(0), rhythms_4_3(1)), FPC) +
-    midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHO_DECAY.id, List(64), rhythms_4_3(1)), FPC) +
-      midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHO_SUSTAIN.id, List(64), rhythms_4_3(1)), FPC) +
-        midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHO_RELEASE.id, List(64), rhythms_4_3(1)), FPC)
+  val hhoControl = midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHO_ATTACK.id, List(0), rhythms_4_3(1)), LabsDrums) +
+    midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHO_DECAY.id, List(64), rhythms_4_3(1)), LabsDrums) +
+      midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHO_SUSTAIN.id, List(64), rhythms_4_3(1)), LabsDrums) +
+        midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHO_RELEASE.id, List(64), rhythms_4_3(1)), LabsDrums)
 
-  val hhcControl = midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHC_ATTACK.id, List(0), rhythms_4_3(1)), FPC) +
-    midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHC_DECAY.id, List(64), rhythms_4_3(1)), FPC) +
-      midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHC_SUSTAIN.id, List(64), rhythms_4_3(1)), FPC) +
-        midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHC_RELEASE.id, List(64), rhythms_4_3(1)), FPC)
+  val hhcControl = midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHC_ATTACK.id, List(0), rhythms_4_3(1)), LabsDrums) +
+    midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHC_DECAY.id, List(64), rhythms_4_3(1)), LabsDrums) +
+      midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHC_SUSTAIN.id, List(64), rhythms_4_3(1)), LabsDrums) +
+        midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHC_RELEASE.id, List(64), rhythms_4_3(1)), LabsDrums)
 
-  val pianoControl = midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = FILTER_CUTOFF.id, List(127), rhythms_4_3(1)), FPC)
+  val pianoControl = midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = FILTER_CUTOFF.id, List(127), rhythms_4_3(1)), LabsDrums)
 
 
   var scale = Scale(modeNumberMap.get(3).get, MidiNoteNames.D.id, DefaultInstrument(0,0, "C3", "C5"))
@@ -102,17 +102,17 @@ object Runner extends App {
 
     val poly_4_3 = rhythms_4_3(4) + rhythms_4_3(3)
 //    val kick = Bar(KICK, theOne(beats,subDivsPerBeat)) + kickControl
-    val kick = midibuilders.Bar(KICK, rhythms_4_3(4), FPC) + kickControl
-    val hho = Bar(HHO, rhythms_4_3(1).rotate(3,3), FPC) + hhoControl
-    val hhc = midibuilders.Bar(HHC, poly_4_3.dynamics(64,127), FPC) + midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHC_DECAY.id, poly_4_3.dynamics(10,64).velocities.toList, poly_4_3), FPC)
-    val hhp = midibuilders.Bar(HHP, poly_4_3, FPC)
-    val sn = midibuilders.Bar(SNARE, theOne(beats,subDivsPerBeat).rotate(2), FPC)
+    val kick = midibuilders.Bar(KICK, rhythms_4_3(4), LabsDrums) //+ kickControl
+    val hho = Bar(HHO, rhythms_4_3(1).rotate(3,3), LabsDrums) //+ hhoControl
+    val hhc = midibuilders.Bar(HHC, poly_4_3.dynamics(64,127), LabsDrums) + midibuilders.ControlBar(barconstructors.CCBarConstructor(midiCCNum = HHC_DECAY.id, poly_4_3.dynamics(10,64).velocities.toList, poly_4_3), LabsDrums)
+    val hhp = midibuilders.Bar(HHP, poly_4_3, LabsDrums)
+    val sn = midibuilders.Bar(SNARE, theOne(beats,subDivsPerBeat).rotate(2), LabsDrums)
 
     val numBeatsHarm = 2
     val rhythm = rhythms_4_3(numBeatsHarm).dynamics(64,64).rotate(1,0).setDurations(List(2,2))
     val rootNotes = chordRoots.slice(barNum % 2, barNum % 2 + numBeatsHarm)
     val pp = chordDegrees.map(d => ScalePhrase(rootNotes.map(i => i + d), scale))
-    val harm = midibuilders.Bar(PolyphonicScalePhraseBarConstructor(PolyphonicScalePhrase(pp), rhythm), FPC) + pianoControl
+    val harm = midibuilders.Bar(PolyphonicScalePhraseBarConstructor(PolyphonicScalePhrase(pp), rhythm), LabsDrums)// + pianoControl
 
     (harm,  kick + hhp + hho + hhc + sn)
   })//.take(5)
@@ -138,11 +138,11 @@ object Runner extends App {
   })
 
 
-  val drumLine = List(Track(lines.map(_._2), FPC))
+  val drumLine = List(Track(lines.map(_._2), LabsDrums))
   val pianoLine = List(Track(lines.map(_._1), pianoInstrument))
   val pianoLine2 = List(Track(piano, pianoInstrument))
   val arrangement = Arrangement(drumLine ++ pianoLine ++ pianoLine2).repeat(1)
 
-  Sequencer(arrangement).play(60)
+  Sequencer(arrangement).play(120)
 
 }

@@ -67,18 +67,18 @@ trait RhythmTransformers extends AbstractRhythm {
     Rhythm(rhythm.beats, rhythm.subdivisions, rhythm.hitIndices, rhythm.hitDurations.map(d => d*factor), extendedDurations, rhythm.velocities)
   }
 
-  def reverse(rhythm: Rhythm): Rhythm = {
-    val reversedIndices = subIdx2Tuple(idxTuple2SubIdx(rhythm.hitIndices, rhythm.subdivisions).reverse, rhythm.subdivisions)
-    Rhythm(rhythm.beats, rhythm.subdivisions, reversedIndices, rhythm.hitDurations.reverse, rhythm.durations.reverse, rhythm.velocities.reverse)
+  def reverse(): Rhythm = {
+    val reversedIndices = subIdx2Tuple(idxTuple2SubIdx(hitIndices, subdivisions).reverse, subdivisions)
+    Rhythm(beats, subdivisions, reversedIndices, hitDurations.reverse, durations.reverse, velocities.reverse)
   }
 
-  def swing(rhythm: Rhythm, subdivisionMultiple: Int): Rhythm = {
+  def swing(subdivisionMultiple: Int): Rhythm = {
     //move every other hit forward
-    val newSubdivisions = rhythm.subdivisions * subdivisionMultiple
-    val newSteps = rhythm.beats * newSubdivisions
-    val addedSteps = rhythm.expandSubdivisions(newSubdivisions)
+    val newSubdivisions = subdivisions * subdivisionMultiple
+    val newSteps = beats * newSubdivisions
+    val addedSteps = expandSubdivisions(newSubdivisions)
     val swungIndices = subIdx2Tuple(idxTuple2SubIdx(addedSteps.hitIndices, newSubdivisions).map(i => (if ((i / subdivisionMultiple) % 2==0) i else i+1) % newSteps), newSubdivisions)
-    Rhythm(rhythm.beats, newSubdivisions, swungIndices, rhythm.hitDurations, rhythm.velocities)
+    Rhythm(beats, newSubdivisions, swungIndices, hitDurations, velocities)
   }
 
   //  def shift(rhythm: Rhythm, wholeSteps: Int, subdivisions: Int): Rhythm = {
