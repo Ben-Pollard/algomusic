@@ -17,9 +17,12 @@ lazy val hello = (project in file("."))
       "com.github.psambit9791" % "jdsp" % "2.0.0",
       "org.plotly-scala" %% "plotly-core" % "0.8.3",
       "org.plotly-scala" %% "plotly-render" % "0.8.3",
-      "org.scalanlp" %% "breeze" % "2.1.0"
+      "org.scalanlp" %% "breeze" % "2.1.0",
+      "org.tensorflow" % "tensorflow-core-platform-gpu" % "0.4.2",
+      "org.tensorflow" % "tensorflow-framework" % "0.4.2"
     )
   )
+resolvers ++= Seq(Resolver.sonatypeRepo("public"))
 
 //resolvers ++= Seq(
 //  "scala-tools" at "https://oss.sonatype.org/content/groups/scala-tools",
