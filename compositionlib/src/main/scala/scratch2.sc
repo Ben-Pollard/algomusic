@@ -7,17 +7,6 @@ import optimisation.HarmonicArray
 import optimisation.consonancemetrics.CombinedConsonance.getConsonanceOfPitches
 import optimisation.consonancemetrics.DissonanceCurve.getDissonanceOfPitches
 
-//System.setProperty("-Dcom.github.fommil.netlib.NativeSystemBLAS.natives", "C:\\Program Files\\AMD\\AOCL-Windows\\amd-libflame\\lib\\LP64\\AOCL-LibBlis-Win-MT-dll.dll")
-//System.setProperty("-Dcom.github.fommil.netlib.NativeSystemLAPACK.natives", "C:\\Program Files\\AMD\\AOCL-Windows\\amd-libflame\\lib\\LP64\\AOCL-LibFLAME-Win-MT-dll.dll")
-
-//System.setProperty("-Dcom.github.fommil.netlib.BLAS", "C:\\Program Files\\AMD\\AOCL-Windows\\amd-libflame\\lib\\LP64\\AOCL-LibBlis-Win-MT-dll.dll")
-//System.setProperty("-Dcom.github.fommil.netlib.LAPACK", "C:\\Program Files\\AMD\\AOCL-Windows\\amd-libflame\\lib\\LP64\\AOCL-LibFLAME-Win-MT-dll.dll")
-
-System.setProperty("-Dcom.github.fommil.netlib.NativeSystemBLAS.natives", "C:\\Program Files\\OpenBLAS\\bin\\libopenblas.dll")
-// System.setProperty("-Dcom.github.fommil.netlib.NativeSystemLAPACK.natives", "C:\\Program Files\\AMD\\AOCL-Windows\\amd-libflame\\lib\\LP64\\AOCL-LibFLAME-Win-MT-dll.dll")
-
-NativeBLAS.getInstance()
-BLAS.getInstance()
 
 val y = HarmonicArray.intervalDissonances
 
