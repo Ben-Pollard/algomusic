@@ -28,7 +28,9 @@ object Harmonicity {
     }).toArray
 
     val m = new DenseMatrix(array_dim, spectra.length, spectra.flatten)
-
+    val m0 = m(::,0)
+    val summ = sum(m)
+    val summ0 = sum(m(::,0))
     sum(m, Axis._1)
 
   }

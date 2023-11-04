@@ -1,19 +1,33 @@
 package optimisation
 
 import optimisation.consonancemetrics.HarmonicityTF.graph
+import optimisation.consonancemetrics.TFtester.{chordPlaceHolder, weightsPlaceHolder}
 import org.tensorflow.{Output, Session}
-import org.tensorflow.ndarray.StdArrays
+import org.tensorflow.ndarray.{NdArrays, Shape, StdArrays}
 import org.tensorflow.proto.framework.DataType
 import org.tensorflow.types.{TFloat64, TInt32}
 import org.tensorflow.types.family.TType
+
 import scala.collection.JavaConverters._
 
-class TensorFlowHelpers {
+object TensorFlowHelpers {
 
   def probe[T <: TType](output: Output[T]) = {
+
+    val chord = Array(0,7)
+    val weights = Array(1.0,1.0)
+
+    val chordNDArray = NdArrays.ofInts(Shape.of(chord.size))
+    StdArrays.copyTo(chord, chordNDArray)
+
+    val weightsNDArray = NdArrays.ofDoubles(Shape.of(weights.size))
+    StdArrays.copyTo(weights, weightsNDArray)
+
     val sess = new Session(graph)
     val res = sess.runner()
       .fetch(output)
+      .feed(chordPlaceHolder, TInt32.tensorOf(chordNDArray))
+      .feed(weightsPlaceHolder, TFloat64.tensorOf(weightsNDArray))
       .run().iterator().asScala.toList
 
     val scalaRes = res.map(t => {

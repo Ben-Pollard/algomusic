@@ -1,10 +1,16 @@
 package optimisation.consonancemetrics
 
 import breeze.stats.distributions.{Gaussian, RandBasis}
+import optimisation.TensorFlowHelpers
+import optimisation.consonancemetrics.TFtester.{chordPlaceHolder, weightsPlaceHolder}
 import org.tensorflow.framework.utils.CastHelper
+import org.tensorflow.ndarray.{NdArrays, Shape, StdArrays}
 import org.tensorflow.op.{OpScope, Ops}
+import org.tensorflow.proto.framework.DataType
+import org.tensorflow.types.family.TType
 import org.tensorflow.types.{TFloat64, TInt32}
-import org.tensorflow.{Graph, Operand}
+import org.tensorflow.{Graph, Operand, Output, Session}
+
 import scala.collection.JavaConverters._
 
 object HarmonicityTF {
@@ -236,4 +242,40 @@ object HarmonicityTF {
     (graph, harmonicity, chordPlaceHolder, weightsPlaceHolder)
   }
 
+  def probe[T <: TType](output: Output[T]) = {
+
+    val chord = Array(0,7)
+    val weights = Array(1.0,1.0)
+
+    val chordNDArray = NdArrays.ofInts(Shape.of(chord.size))
+    StdArrays.copyTo(chord, chordNDArray)
+
+    val weightsNDArray = NdArrays.ofDoubles(Shape.of(weights.size))
+    StdArrays.copyTo(weights, weightsNDArray)
+
+    val sess = new Session(graph)
+    val res = sess.runner()
+      .fetch(output)
+      .feed(chordPlaceHolder, TInt32.tensorOf(chordNDArray))
+      .feed(weightsPlaceHolder, TFloat64.tensorOf(weightsNDArray))
+      .run().iterator().asScala.toList
+
+    val scalaRes = res.map(t => {
+      val tAsType = (t.dataType(), t.shape().asArray().size) match {
+        case (DataType.DT_INT32, 1) => StdArrays.array1dCopyOf(t.asInstanceOf[TInt32])
+        case (DataType.DT_DOUBLE, 1) => StdArrays.array1dCopyOf(t.asInstanceOf[TFloat64])
+        case (DataType.DT_INT32, 2) => StdArrays.array2dCopyOf(t.asInstanceOf[TInt32]).map(_.toList)
+        case (DataType.DT_DOUBLE, 2) => StdArrays.array2dCopyOf(t.asInstanceOf[TFloat64]).map(_.toList)
+        case (DataType.DT_INT32, 3) => StdArrays.array3dCopyOf(t.asInstanceOf[TInt32]).map(_.map(_.toList).toList)
+        case (DataType.DT_DOUBLE, 3) => StdArrays.array3dCopyOf(t.asInstanceOf[TFloat64]).map(_.map(_.toList).toList)
+      }
+      tAsType.toList
+    })
+
+    println(s"probe ${output.name()}: ${scalaRes.foreach(r => println(r))}")
+  }
+
+  val chordPlaceHolder = tf.placeholder(classOf[TInt32])
+  val weightsPlaceHolder = tf.placeholder(classOf[TFloat64])
+  val harmonicity = calcHarmonicity(chordPlaceHolder, weightsPlaceHolder)
 }
