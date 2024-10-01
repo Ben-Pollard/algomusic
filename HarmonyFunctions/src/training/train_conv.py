@@ -86,13 +86,13 @@ def squeeze2(x):
 
 
 input = keras.Input(shape=(12,11,1), name="input")
-conv1 = layers.Conv2D(32, kernel_size=(1,11), activation=keras.layers.LeakyReLU(0.2))(input)
-remap = layers.Conv2D(16, kernel_size=1, activation=keras.layers.LeakyReLU(0.2))(conv1)
-conv2 = layers.Conv2D(4096, kernel_size=(12,1), activation=keras.layers.LeakyReLU(0.2))(remap)
+conv1 = layers.Conv2D(32, name="conv1", kernel_size=(1,11), activation=keras.layers.LeakyReLU(0.2))(input)
+remap = layers.Conv2D(16, name="remap", kernel_size=1, activation=keras.layers.LeakyReLU(0.2))(conv1)
+conv2 = layers.Conv2D(32, name="conv2", kernel_size=(12,1), activation=keras.layers.LeakyReLU(0.2))(remap)
 flat = keras.layers.Flatten()(conv2)
-dense1 = layers.Dense(1024, activation=keras.layers.LeakyReLU(0.2))(flat)
-dense2 = layers.Dense(256, activation=keras.layers.LeakyReLU(0.2))(dense1)
-dense3 = layers.Dense(64, activation=keras.layers.LeakyReLU(0.2))(dense2)
+dense1 = layers.Dense(32, name="dense1", activation=keras.layers.LeakyReLU(0.2))(flat)
+dense2 = layers.Dense(16, name="dense2", activation=keras.layers.LeakyReLU(0.2))(dense1)
+dense3 = layers.Dense(8, name="dense3", activation=keras.layers.LeakyReLU(0.2))(dense2)
 output = layers.Dense(1, activation=keras.layers.LeakyReLU(0.2), name="h1armonicity")(dense3)
 harm_pred_model = keras.Model(inputs=[input], outputs=output, name="harmonicity_model")
 harm_pred_model.summary()
@@ -111,16 +111,16 @@ harm_pred_model.fit_generator(
     epochs=10000,  
     callbacks=callback)
 
+## Evaluate
+predicted = np.squeeze(harm_pred_model.predict([validation_generator.X_test]))
+print(f"R-squared: {r2_score(validation_generator.y_test, predicted)}")
+print(f"MAE: {mean_absolute_error(validation_generator.y_test, predicted)}")
+
 # Save
 harm_pred_model.save('models/harm_pred_model.h5')
 harm_pred_model = keras.models.load_model('models/harm_pred_model.h5')
-
-## Evaluate
-predicted = np.squeeze(harm_pred_model.predict([validation_generator.X_test]))
 np.save('data/predicted.npy', predicted)
 np.save('data/y_test.npy', validation_generator.y_test)
-print(f"R-squared: {r2_score(validation_generator.y_test, predicted)}")
-print(f"MAE: {mean_absolute_error(validation_generator.y_test, predicted)}")
 
 
 X_17 = np.zeros(128)

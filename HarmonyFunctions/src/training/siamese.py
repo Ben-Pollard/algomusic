@@ -18,15 +18,14 @@ def euclidean_distance(vectors):
     sum_square = tf.math.reduce_sum(tf.math.square(x-y), axis=1, keepdims=True)
     return tf.math.sqrt(tf.math.maximum(sum_square, tf.keras.backend.epsilon()))
 
-
 # Transfer embedding model from harmonicity prediction
 harm_pred_model = keras.models.load_model('models/harm_pred_model.h5')
 harm_pred_model.summary()
 harm_pred_model.trainable=False
 normal = tf.keras.layers.BatchNormalization()(harm_pred_model.layers[-4].output)
 d1 = layers.Dense(512, activation='tanh', name='embedding_d3')(normal)
-d2 = layers.Dense(128, activation='tanh', name='embedding_d4')(d1)
-embedding_layer = layers.Dense(64, activation='tanh', name='embedding')(d2)
+d2 = layers.Dense(64, activation='tanh', name='embedding_d4')(d1)
+embedding_layer = layers.Dense(8, activation='tanh', name='embedding')(d2)
 embedding_network = keras.Model(harm_pred_model.input, embedding_layer, name="embedding_model")
 embedding_network.summary()
 [l.trainable for l in embedding_network.layers]
@@ -37,12 +36,11 @@ input_1 = keras.Input(shape=(12,11,1), name="input_1")
 input_2 = keras.Input(shape=(12,11,1), name="input_2")
 tower_1 = embedding_network(input_1)
 tower_2 = embedding_network(input_2)
-#merge = layers.Lambda(euclidean_distance)([tower_1, tower_2])
-merge = layers.Dot(axes=1, normalize=True)([tower_1, tower_2])
-#normal = tf.keras.layers.BatchNormalization()(merge)
-output = layers.Dense(1, activation=None)(merge)
-#normal = layers.BatchNormalization()(merge)
-#output = layers.Dense(1, activation="sigmoid")(normal)
+merge = layers.Lambda(euclidean_distance)([tower_1, tower_2])
+#merge = layers.Dot(axes=1, normalize=True)([tower_1, tower_2])
+#output = layers.Dense(1, activation=None)(merge)
+# normal = layers.BatchNormalization()(merge)
+output = layers.Dense(1, activation="sigmoid")(merge)
 
 # We want the Euclidean distance between the embeddings to be the harmonicity diff between the chords
 siamese = keras.Model(inputs=[input_1, input_2], outputs=output)
@@ -50,7 +48,24 @@ siamese = keras.Model(inputs=[input_1, input_2], outputs=output)
 def loss(y_true, y_pred):
     return tf.reduce_mean(tf.abs((y_true - y_pred))**3, axis=-1)
 
-siamese.compile(loss='mae', metrics=['mae'], optimizer=tf.keras.optimizers.Adam(learning_rate=0.1))
+def contrastive_loss(margin=1):
+    """Provides 'contrastive_loss' an enclosing scope with variable 'margin'.
+
+    Arguments:
+        margin: Integer, defines the baseline for distance for which pairs
+                should be classified as dissimilar. - (default is 1).
+    """
+    def loss(y_true, y_pred):
+        square_pred = tf.math.square(y_pred)
+        margin_square = tf.math.square(tf.reduce_max(margin - (y_pred), 0))
+        return tf.reduce_mean((1 - y_true) * square_pred + (y_true) * margin_square)
+
+    return loss
+
+
+siamese.compile(loss=contrastive_loss(margin=0.5), metrics=['mae'], optimizer=tf.keras.optimizers.Adam(learning_rate=0.1))
+
+siamese.summary()
 
 # Train
 callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3, restore_best_weights=True)
@@ -63,6 +78,15 @@ siamese.fit(
     batch_size=1024,
     validation_data=([c1_test, c2_test], h_test), 
     callbacks=callback)
+
+h_predicted = np.squeeze(siamese.predict([c1_test, c2_test]))
+np.save('./data/siamese/h_predicted.npy', h_predicted)
+np.save('./data/siamese/h_test.npy', h_test)
+np.save('./data/siamese/c1_test.npy', c1_test)
+np.save('./data/siamese/c2_test.npy', c2_test)
+
+h_predicted.shape
+h_test.shape
 
 [l.trainable for l in siamese.get_layer("embedding_model").layers]
 siamese.layers[2].name
